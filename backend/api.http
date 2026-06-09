@@ -1,0 +1,295 @@
+@baseUrl = http://localhost:8000
+
+### ========== CATEGORÍAS ==========
+
+### GET - Obtener todas las categorías (con paginación)
+GET {{baseUrl}}/categorias?limit=10&offset=0
+
+### GET - Obtener categorías con paginación customizada
+GET {{baseUrl}}/categorias?limit=5&offset=0
+
+### POST - Crear nueva categoría
+POST {{baseUrl}}/categorias
+Content-Type: application/json
+
+{
+  "nombre": "Electrónica",
+  "descripcion": "Productos electrónicos diversos",
+  "imagen_url": "https://example.com/electronica.jpg"
+}
+
+### POST - Crear categoría padre
+POST {{baseUrl}}/categorias
+Content-Type: application/json
+
+{
+  "nombre": "Alimentos",
+  "descripcion": "Productos alimenticios",
+  "imagen_url": "https://example.com/alimentos.jpg"
+}
+
+### POST - Crear categoría hija (subcategoría)
+POST {{baseUrl}}/categorias
+Content-Type: application/json
+
+{
+  "nombre": "Bebidas",
+  "descripcion": "Bebidas diversas",
+  "imagen_url": "https://example.com/bebidas.jpg",
+  "parent_id": 2
+}
+
+### PUT - Actualizar categoría
+PUT {{baseUrl}}/categorias/1
+Content-Type: application/json
+
+{
+  "nombre": "Electrónica Actualizada",
+  "descripcion": "Productos electrónicos actualizados",
+  "imagen_url": "https://example.com/electronica-new.jpg"
+}
+
+### DELETE - Eliminar categoría (soft delete)
+DELETE {{baseUrl}}/categorias/1
+
+### ========== PRODUCTOS ==========
+
+### GET - Obtener todos los productos (con paginación)
+GET {{baseUrl}}/productos?limit=10&offset=0
+
+### GET - Obtener productos con paginación customizada
+GET {{baseUrl}}/productos?limit=5&offset=0
+
+### POST - Crear nuevo producto
+POST {{baseUrl}}/productos
+Content-Type: application/json
+
+{
+  "nombre": "Laptop",
+  "descripcion": "Laptop de alta rendimiento",
+  "precio_base": 1500.00,
+  "imagenes_url": ["https://example.com/laptop-1.jpg", "https://example.com/laptop-2.jpg"],
+  "stock_cantidad": 5,
+  "disponible": true,
+  "categoria_ids": [1]
+}
+
+### POST - Crear segundo producto
+POST {{baseUrl}}/productos
+Content-Type: application/json
+
+{
+  "nombre": "Mouse",
+  "descripcion": "Mouse inalámbrico ergonómico",
+  "precio_base": 25.99,
+  "imagenes_url": ["https://example.com/mouse.jpg"],
+  "stock_cantidad": 15,
+  "disponible": true,
+  "categoria_ids": [1]
+}
+
+### POST - Crear producto con múltiples categorías
+POST {{baseUrl}}/productos
+Content-Type: application/json
+
+{
+  "nombre": "Monitor",
+  "descripcion": "Monitor 4K 27 pulgadas",
+  "precio_base": 450.00,
+  "imagenes_url": ["https://example.com/monitor.jpg"],
+  "stock_cantidad": 3,
+  "disponible": true,
+  "categoria_ids": [1]
+}
+
+### POST - Crear producto sin stock
+POST {{baseUrl}}/productos
+Content-Type: application/json
+
+{
+  "nombre": "Teclado Gaming",
+  "descripcion": "Teclado mecánico RGB",
+  "precio_base": 120.00,
+  "imagenes_url": ["https://example.com/keyboard.jpg"],
+  "stock_cantidad": 0,
+  "disponible": false,
+  "categoria_ids": [1]
+}
+
+### PUT - Actualizar producto
+PUT {{baseUrl}}/productos/1
+Content-Type: application/json
+
+{
+  "nombre": "Laptop Gamer",
+  "precio_base": 1800.00,
+  "stock_cantidad": 3,
+  "disponible": true
+}
+
+### DELETE - Eliminar producto (soft delete)
+DELETE {{baseUrl}}/productos/1
+
+### ========== INGREDIENTES ==========
+
+### GET - Obtener todos los ingredientes (con paginación)
+GET {{baseUrl}}/ingredientes?limit=10&offset=0
+
+### GET - Obtener ingredientes con paginación customizada
+GET {{baseUrl}}/ingredientes?limit=5&offset=0
+
+### POST - Crear nuevo ingrediente
+POST {{baseUrl}}/ingredientes
+Content-Type: application/json
+
+{
+  "nombre": "Pollo",
+  "descripcion": "Pollo fresco de granja",
+  "es_alergeno": false
+}
+
+### POST - Crear ingrediente alergeno
+POST {{baseUrl}}/ingredientes
+Content-Type: application/json
+
+{
+  "nombre": "Cacahuetes",
+  "descripcion": "Cacahuetes tostados",
+  "es_alergeno": true
+}
+
+### POST - Crear otro ingrediente alergeno
+POST {{baseUrl}}/ingredientes
+Content-Type: application/json
+
+{
+  "nombre": "Leche",
+  "descripcion": "Leche fresca entera",
+  "es_alergeno": true
+}
+
+### POST - Crear ingrediente no alergeno
+POST {{baseUrl}}/ingredientes
+Content-Type: application/json
+
+{
+  "nombre": "Lechuga",
+  "descripcion": "Lechuga orgánica",
+  "es_alergeno": false
+}
+
+### PUT - Actualizar ingrediente
+PUT {{baseUrl}}/ingredientes/1
+Content-Type: application/json
+
+{
+  "nombre": "Pollo Premium",
+  "descripcion": "Pollo premium de granja certificada",
+  "es_alergeno": false
+}
+
+### DELETE - Eliminar ingrediente (hard delete)
+DELETE {{baseUrl}}/ingredientes/1
+
+### ========== PEDIDOS ==========
+
+### GET - Obtener todos los pedidos (con paginación)
+GET {{baseUrl}}/pedidos?limit=10&offset=0
+
+### POST - Crear nuevo pedido
+POST {{baseUrl}}/pedidos
+Content-Type: application/json
+
+{
+  "usuario_id": 1,
+  "direccion_id": 1,
+  "estado_codigo": "PENDIENTE",
+  "forma_pago_codigo": "MERCADOPAGO",
+  "subtotal": 150.00,
+  "descuento": 10.00,
+  "costo_envio": 50.00,
+  "total": 190.00,
+  "notas": "Entregar en horario matutino"
+}
+
+### GET - Obtener pedido por ID
+GET {{baseUrl}}/pedidos/1
+
+### PUT - Actualizar pedido (notas, costo_envio, etc - sin cambiar estado)
+PUT {{baseUrl}}/pedidos/1
+Content-Type: application/json
+
+{
+  "notas": "Actualizar horario de entrega",
+  "costo_envio": 60.00
+}
+
+### POST - Transicionar estado: PENDIENTE → CONFIRMADO
+POST {{baseUrl}}/pedidos/1/transition-estado?nuevo_estado=CONFIRMADO
+
+### POST - Transicionar estado: CONFIRMADO → EN_PREP
+POST {{baseUrl}}/pedidos/1/transition-estado?nuevo_estado=EN_PREP
+
+### POST - Transicionar estado: EN_PREP → EN_CAMINO
+POST {{baseUrl}}/pedidos/1/transition-estado?nuevo_estado=EN_CAMINO
+
+### POST - Transicionar estado: EN_CAMINO → ENTREGADO
+POST {{baseUrl}}/pedidos/1/transition-estado?nuevo_estado=ENTREGADO
+
+### POST - Cancelar pedido (requiere motivo)
+POST {{baseUrl}}/pedidos/1/transition-estado?nuevo_estado=CANCELADO&motivo=Cliente%20solicito%20cancelacion
+
+### DELETE - Soft delete de pedido
+DELETE {{baseUrl}}/pedidos/1
+
+### ========== DETALLES PEDIDO ==========
+
+### GET - Obtener detalles de un pedido
+GET {{baseUrl}}/pedidos/1/detalles
+
+### POST - Crear detalle de pedido
+POST {{baseUrl}}/pedidos/1/detalles
+Content-Type: application/json
+
+{
+  "producto_id": 1,
+  "cantidad": 2,
+  "personalizacion": [],
+  "nombre_snapshot": "Laptop",
+  "precio_snapshot": 1500.00,
+  "subtotal_snap": 3000.00
+}
+
+### ========== PAGOS ==========
+
+### GET - Obtener pagos de un pedido
+GET {{baseUrl}}/pedidos/1/pagos
+
+### POST - Crear pago (MercadoPago)
+POST {{baseUrl}}/pedidos/1/pagos
+Content-Type: application/json
+
+{
+  "mp_status": "pending",
+  "transaction_amount": 190.00,
+  "external_reference": "pedido-1-ref",
+  "idempotency_key": "uuid-v4-generado-por-frontend"
+}
+
+### PUT - Actualizar estado de pago (simulación de webhook)
+PUT {{baseUrl}}/pedidos/1/pagos/1
+Content-Type: application/json
+
+{
+  "mp_status": "approved",
+  "mp_payment_id": 12345678,
+  "mp_status_detail": "accredited"
+}
+
+### ========== RELACIONES PRODUCTO-CATEGORÍA ==========
+
+### GET - Obtener producto (con soft delete filter)
+GET {{baseUrl}}/productos/2
+
+### GET - Obtener categoría (con soft delete filter)
+GET {{baseUrl}}/categorias/1
