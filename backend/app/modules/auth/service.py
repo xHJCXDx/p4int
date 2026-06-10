@@ -1,14 +1,19 @@
+import hashlib
 from typing import Optional
-from datetime import timedelta
-from sqlmodel import Session
-from app.modules.usuarios.model import Usuario
+from datetime import datetime, timedelta
+from sqlmodel import Session, select
+from app.modules.usuarios.model import Usuario, RefreshToken
 from app.modules.usuarios.schema import UsuarioCreate, UsuarioUpdate, UsuarioRead, TokenResponse
 from app.core.security import (
     hash_password, verify_password,
     create_access_token, create_refresh_token, verify_token,
-    ACCESS_TOKEN_EXPIRE_MINUTES,
+    ACCESS_TOKEN_EXPIRE_MINUTES, REFRESH_TOKEN_EXPIRE_DAYS,
 )
 from app.modules.usuarios.unit_of_work import UsuarioUnitOfWork
+
+
+def _hash_token(token: str) -> str:
+    return hashlib.sha256(token.encode()).hexdigest()
 
 
 def usuario_to_read(usuario: Usuario) -> UsuarioRead:
@@ -56,8 +61,8 @@ def login_user(session: Session, email: str, password: str) -> Optional[Usuario]
         return user
 
 
-def create_login_tokens(user: Usuario) -> TokenResponse:
-    """Crea access + refresh tokens para el usuario autenticado."""
+def create_login_tokens(session: Session, user: Usuario) -> TokenResponse:
+    """Crea access + refresh tokens y persiste el refresh en DB."""
     user_roles = [role.codigo for role in user.roles]
     token_data = {"sub": str(user.id)}
 
@@ -68,6 +73,14 @@ def create_login_tokens(user: Usuario) -> TokenResponse:
     )
     refresh = create_refresh_token(data=token_data, roles=user_roles)
 
+    rt = RefreshToken(
+        usuario_id=user.id,
+        token_hash=_hash_token(refresh),
+        expires_at=datetime.utcnow() + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS),
+    )
+    session.add(rt)
+    session.commit()
+
     return TokenResponse(
         access_token=access_token,
         refresh_token=refresh,
@@ -75,12 +88,26 @@ def create_login_tokens(user: Usuario) -> TokenResponse:
     )
 
 
-def refresh_from_token(refresh_token_str: str) -> TokenResponse:
-    """Valida un refresh token y emite un nuevo par access + refresh."""
+def refresh_from_token(session: Session, refresh_token_str: str) -> TokenResponse:
+    """Valida un refresh token, revoca el viejo, y emite un nuevo par."""
     payload = verify_token(refresh_token_str)
 
     if payload.get("type") != "refresh":
         raise ValueError("Se requiere un refresh token")
+
+    token_hash = _hash_token(refresh_token_str)
+    stored = session.exec(
+        select(RefreshToken).where(
+            RefreshToken.token_hash == token_hash,
+            RefreshToken.revoked_at.is_(None),
+        )
+    ).first()
+
+    if not stored:
+        raise ValueError("Refresh token revocado o no encontrado")
+
+    stored.revoked_at = datetime.utcnow()
+    session.add(stored)
 
     user_id = payload.get("sub")
     roles = payload.get("roles", [])
@@ -91,13 +118,36 @@ def refresh_from_token(refresh_token_str: str) -> TokenResponse:
         roles=roles,
         expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
     )
-    refresh = create_refresh_token(data=token_data, roles=roles)
+    new_refresh = create_refresh_token(data=token_data, roles=roles)
+
+    rt = RefreshToken(
+        usuario_id=int(user_id),
+        token_hash=_hash_token(new_refresh),
+        expires_at=datetime.utcnow() + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS),
+    )
+    session.add(rt)
+    session.commit()
 
     return TokenResponse(
         access_token=access_token,
-        refresh_token=refresh,
+        refresh_token=new_refresh,
         expires_in=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
     )
+
+
+def revoke_refresh_token(session: Session, refresh_token_str: str) -> None:
+    """Revoca un refresh token (logout)."""
+    token_hash = _hash_token(refresh_token_str)
+    stored = session.exec(
+        select(RefreshToken).where(
+            RefreshToken.token_hash == token_hash,
+            RefreshToken.revoked_at.is_(None),
+        )
+    ).first()
+    if stored:
+        stored.revoked_at = datetime.utcnow()
+        session.add(stored)
+        session.commit()
 
 
 def update_user(session: Session, user: Usuario, update_data: UsuarioUpdate) -> Usuario:

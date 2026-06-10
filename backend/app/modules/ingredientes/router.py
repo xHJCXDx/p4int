@@ -27,7 +27,7 @@ def read_ingredientes(
         message="Ingredientes obtenidos exitosamente"
     )
 
-@router.post("/", status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_roles("ADMIN"))])
+@router.post("/", status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_roles("ADMIN", "STOCK"))])
 def create_ingrediente(ingrediente: IngredienteCreate, session: Session = Depends(get_session)) -> ApiResponse:
     """Crear ingrediente (solo ADMIN)."""
     new_ingrediente = service.create(session, ingrediente)
@@ -37,7 +37,7 @@ def create_ingrediente(ingrediente: IngredienteCreate, session: Session = Depend
         status_code=201
     )
 
-@router.put("/{ingrediente_id}", dependencies=[Depends(require_roles("ADMIN"))])
+@router.put("/{ingrediente_id}", dependencies=[Depends(require_roles("ADMIN", "STOCK"))])
 def update_ingrediente(ingrediente_id: int, ingrediente: IngredienteUpdate, session: Session = Depends(get_session)) -> ApiResponse:
     """Actualizar ingrediente (solo ADMIN)."""
     db_ingrediente = service.get_by_id(session, ingrediente_id)
@@ -49,7 +49,7 @@ def update_ingrediente(ingrediente_id: int, ingrediente: IngredienteUpdate, sess
         message="Ingrediente actualizado exitosamente"
     )
 
-@router.delete("/{ingrediente_id}", dependencies=[Depends(require_roles("ADMIN"))])
+@router.delete("/{ingrediente_id}", dependencies=[Depends(require_roles("ADMIN", "STOCK"))])
 def delete_ingrediente(ingrediente_id: int, session: Session = Depends(get_session)) -> ApiResponse:
     """Eliminar ingrediente (solo ADMIN)."""
     db_ingrediente = service.get_by_id(session, ingrediente_id)

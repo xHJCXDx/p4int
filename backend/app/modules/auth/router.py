@@ -48,7 +48,7 @@ def login(
             status_code=status.HTTP_401_UNAUTHORIZED,
         )
 
-    tokens = service.create_login_tokens(user)
+    tokens = service.create_login_tokens(session, user)
 
     return success_response(
         data={
@@ -96,10 +96,13 @@ def change_password(
 
 
 @router.post("/refresh")
-def refresh_token(body: RefreshTokenRequest) -> ApiResponse:
+def refresh_token(
+    body: RefreshTokenRequest,
+    session: Session = Depends(get_session),
+) -> ApiResponse:
     """Emite nuevo par de tokens a partir de un refresh_token válido."""
     try:
-        tokens = service.refresh_from_token(body.refresh_token)
+        tokens = service.refresh_from_token(session, body.refresh_token)
         return success_response(
             data=tokens.model_dump(),
             message="Token renovado exitosamente",
@@ -111,7 +114,9 @@ def refresh_token(body: RefreshTokenRequest) -> ApiResponse:
 @router.post("/logout")
 def logout(
     body: RefreshTokenRequest,
+    session: Session = Depends(get_session),
     current_user: Usuario = Depends(get_current_user),
 ) -> ApiResponse:
-    """Cierra la sesión. Requiere Bearer token + refresh_token en body."""
+    """Cierra la sesión. Revoca el refresh token."""
+    service.revoke_refresh_token(session, body.refresh_token)
     return success_response(message="Sesión cerrada exitosamente")
