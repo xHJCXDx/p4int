@@ -1,11 +1,13 @@
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Query
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from sqlmodel import Session
 from app.core.database import create_db_and_tables, engine
 from app.core.rate_limit import limiter
+from app.core.security import verify_token
+from app.core.ws_manager import ws_manager
 from app.modules.categorias.router import router as categoria_router
 from app.modules.productos.router import router as producto_router
 from app.modules.ingredientes.router import router as ingrediente_router
@@ -69,3 +71,24 @@ app.include_router(uploads_router)
 @app.get("/")
 def read_root():
     return {"message": "API de Productos y Categorías"}
+
+
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket, token: str = Query(...)):
+    """WebSocket autenticado vía query param ?token=<access_token>."""
+    try:
+        payload = verify_token(token)
+        if payload.get("type") != "access":
+            await websocket.close(code=4001)
+            return
+        user_id = int(payload["sub"])
+    except Exception:
+        await websocket.close(code=4001)
+        return
+
+    await ws_manager.connect(websocket, user_id)
+    try:
+        while True:
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        ws_manager.disconnect(websocket, user_id)
