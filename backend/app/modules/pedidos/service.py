@@ -263,6 +263,35 @@ def get_detalles_by_pedido(session: Session, pedido_id: int) -> List[DetallePedi
         return uow.detalles.get_by_pedido(pedido_id)
 
 
+def get_historial(session: Session, pedido_id: int) -> List[HistorialEstadoPedido]:
+    """Obtiene el historial de estados de un pedido, ordenado por created_at ASC."""
+    with PedidoUnitOfWork(session) as uow:
+        return uow.historial.get_by_pedido(pedido_id)
+
+
+def cancel_pedido(session: Session, pedido: Pedido, current_user: Usuario, motivo: Optional[str] = None) -> Pedido:
+    """
+    Cancela un pedido propio del cliente.
+    Solo permite cancelar desde PENDIENTE o CONFIRMADO.
+    """
+    if pedido.usuario_id != current_user.id:
+        raise PermissionError("Solo podés cancelar tus propios pedidos")
+
+    allowed = TRANSICIONES_PERMITIDAS.get(pedido.estado_codigo, [])
+    if "CANCELADO" not in allowed:
+        raise ValueError(
+            f"No se puede cancelar un pedido en estado {pedido.estado_codigo}"
+        )
+
+    if not motivo:
+        raise ValueError("Motivo obligatorio para cancelar un pedido (RN-05)")
+
+    return transition_estado(
+        session, pedido.id, "CANCELADO",
+        usuario_id=current_user.id, motivo=motivo
+    )
+
+
 def create_detalle_pedido(session: Session, pedido_id: int, detalle_data: DetallePedidoCreate) -> DetallePedido:
     """Crea un detalle de pedido (immutable después de creación)."""
     with PedidoUnitOfWork(session) as uow:
