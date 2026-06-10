@@ -109,3 +109,67 @@ def update(session: Session, db_producto: Producto, producto_data: ProductoUpdat
 def delete(session: Session, db_producto: Producto):
     with ProductoUnitOfWork(session) as uow:
         uow.productos.delete(db_producto)
+
+
+def update_disponibilidad(session: Session, db_producto: Producto, disponible: bool) -> Producto:
+    with ProductoUnitOfWork(session) as uow:
+        updated = uow.productos.update(db_producto, {
+            "disponible": disponible,
+            "updated_at": datetime.utcnow(),
+        })
+        uow.productos.refresh(updated)
+    return updated
+
+
+def update_imagenes(session: Session, db_producto: Producto, imagenes_url: list[str]) -> Producto:
+    with ProductoUnitOfWork(session) as uow:
+        updated = uow.productos.update(db_producto, {
+            "imagenes_url": imagenes_url,
+            "updated_at": datetime.utcnow(),
+        })
+        uow.productos.refresh(updated)
+    return updated
+
+
+def get_ingredientes(session: Session, producto_id: int) -> list[IngredienteInProducto]:
+    with ProductoUnitOfWork(session) as uow:
+        links = uow.productos.get_ingrediente_links(producto_id)
+        result = []
+        for link in links:
+            ingrediente = uow.ingredientes.get_by_id(link.ingrediente_id)
+            if ingrediente:
+                result.append(IngredienteInProducto(
+                    id=ingrediente.id,
+                    nombre=ingrediente.nombre,
+                    es_alergeno=ingrediente.es_alergeno,
+                    cantidad=link.cantidad,
+                    unidad_medida_codigo=link.unidad_medida_codigo,
+                    es_removible=link.es_removible,
+                ))
+        return result
+
+
+def add_ingrediente(session: Session, db_producto: Producto, ing_data: IngredienteEnReceta) -> IngredienteInProducto:
+    with ProductoUnitOfWork(session) as uow:
+        ingrediente = uow.ingredientes.get_by_id(ing_data.ingrediente_id)
+        if not ingrediente:
+            raise ValueError(f"Ingrediente {ing_data.ingrediente_id} no encontrado")
+
+        uow.productos.create_ingrediente_link(
+            db_producto.id,
+            ing_data.ingrediente_id,
+            cantidad=ing_data.cantidad,
+            unidad_medida_codigo=ing_data.unidad_medida_codigo,
+            es_removible=ing_data.es_removible,
+        )
+
+        uow.productos.update(db_producto, {"updated_at": datetime.utcnow()})
+
+    return IngredienteInProducto(
+        id=ingrediente.id,
+        nombre=ingrediente.nombre,
+        es_alergeno=ingrediente.es_alergeno,
+        cantidad=ing_data.cantidad,
+        unidad_medida_codigo=ing_data.unidad_medida_codigo,
+        es_removible=ing_data.es_removible,
+    )

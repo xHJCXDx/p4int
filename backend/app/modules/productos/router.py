@@ -4,7 +4,7 @@ from sqlmodel import Session
 from app.core.database import get_session
 from app.core.response import success_response, error_response, ApiResponse
 from app.core.security import require_roles
-from app.modules.productos.schema import ProductoCreate, ProductoUpdate
+from app.modules.productos.schema import ProductoCreate, ProductoUpdate, DisponibilidadUpdate, ImagenesUpdate, IngredienteEnReceta
 from app.modules.productos import service
 
 router = APIRouter(prefix="/api/v1/productos", tags=["Productos"])
@@ -69,14 +69,59 @@ def update_producto(producto_id: int, producto: ProductoUpdate, session: Session
         message="Producto actualizado exitosamente"
     )
 
-@router.delete("/{producto_id}", dependencies=[Depends(require_roles("ADMIN"))])
-def delete_producto(producto_id: int, session: Session = Depends(get_session)) -> ApiResponse:
-    """Eliminar producto (soft delete, solo ADMIN)."""
+@router.patch("/{producto_id}/disponibilidad", dependencies=[Depends(require_roles("ADMIN", "STOCK"))])
+def update_disponibilidad(producto_id: int, body: DisponibilidadUpdate, session: Session = Depends(get_session)) -> ApiResponse:
+    """Cambiar disponible true/false (ADMIN o STOCK)."""
+    db_producto = service.get_by_id(session, producto_id)
+    if not db_producto:
+        return error_response(message="Producto no encontrado", status_code=404)
+    updated = service.update_disponibilidad(session, db_producto, body.disponible)
+    return success_response(
+        data=service.build_producto_read(session, updated),
+        message="Disponibilidad actualizada"
+    )
+
+
+@router.patch("/{producto_id}/imagenes", dependencies=[Depends(require_roles("ADMIN"))])
+def update_imagenes(producto_id: int, body: ImagenesUpdate, session: Session = Depends(get_session)) -> ApiResponse:
+    """Actualizar lista imagenes_url[] del producto (solo ADMIN)."""
+    db_producto = service.get_by_id(session, producto_id)
+    if not db_producto:
+        return error_response(message="Producto no encontrado", status_code=404)
+    updated = service.update_imagenes(session, db_producto, body.imagenes_url)
+    return success_response(
+        data=service.build_producto_read(session, updated),
+        message="Imágenes actualizadas"
+    )
+
+
+@router.delete("/{producto_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(require_roles("ADMIN"))])
+def delete_producto(producto_id: int, session: Session = Depends(get_session)):
+    """Soft delete producto (solo ADMIN)."""
     db_producto = service.get_by_id(session, producto_id)
     if not db_producto:
         return error_response(message="Producto no encontrado", status_code=404)
     service.delete(session, db_producto)
-    return success_response(
-        message="Producto eliminado exitosamente",
-        status_code=204
-    )
+
+
+@router.get("/{producto_id}/ingredientes")
+def read_producto_ingredientes(producto_id: int, session: Session = Depends(get_session)) -> ApiResponse:
+    """Listar ingredientes del producto (público)."""
+    db_producto = service.get_by_id(session, producto_id)
+    if not db_producto:
+        return error_response(message="Producto no encontrado", status_code=404)
+    ingredientes = service.get_ingredientes(session, producto_id)
+    return success_response(data=ingredientes, message="Ingredientes obtenidos")
+
+
+@router.post("/{producto_id}/ingredientes", status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_roles("ADMIN"))])
+def add_producto_ingrediente(producto_id: int, body: IngredienteEnReceta, session: Session = Depends(get_session)) -> ApiResponse:
+    """Asociar ingrediente a producto con cantidad y unidad (solo ADMIN)."""
+    db_producto = service.get_by_id(session, producto_id)
+    if not db_producto:
+        return error_response(message="Producto no encontrado", status_code=404)
+    try:
+        result = service.add_ingrediente(session, db_producto, body)
+        return success_response(data=result, message="Ingrediente asociado", status_code=201)
+    except ValueError as e:
+        return error_response(message=str(e), status_code=400)
