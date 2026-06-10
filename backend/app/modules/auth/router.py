@@ -1,7 +1,8 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Request, status
 from sqlmodel import Session
 
 from app.core.database import get_session
+from app.core.rate_limit import limiter
 from app.core.response import success_response, error_response, ApiResponse
 from app.core.security import get_current_user
 from app.modules.usuarios.schema import (
@@ -15,9 +16,11 @@ router = APIRouter(prefix="/api/v1/auth", tags=["Autenticación"])
 
 
 @router.post("/register", status_code=status.HTTP_201_CREATED)
+@limiter.limit("5/15minutes")
 def register(
+    request: Request,
     user_data: UsuarioCreate,
-    session: Session = Depends(get_session)
+    session: Session = Depends(get_session),
 ) -> ApiResponse:
     try:
         new_user = service.register_user(session, user_data)
@@ -31,7 +34,9 @@ def register(
 
 
 @router.post("/login")
+@limiter.limit("5/15minutes")
 def login(
+    request: Request,
     credentials: UsuarioLogin,
     session: Session = Depends(get_session),
 ) -> ApiResponse:

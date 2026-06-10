@@ -1,8 +1,11 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 from sqlmodel import Session
 from app.core.database import create_db_and_tables, engine
+from app.core.rate_limit import limiter
 from app.modules.categorias.router import router as categoria_router
 from app.modules.productos.router import router as producto_router
 from app.modules.ingredientes.router import router as ingrediente_router
@@ -34,6 +37,8 @@ async def lifespan(app: FastAPI):
     yield
 
 app = FastAPI(lifespan=lifespan)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 origins = [
     "http://localhost:5173",
