@@ -16,6 +16,16 @@ class PagoRepository(BaseRepository[Pago]):
         statement = select(Pago).where(Pago.pedido_id == pedido_id)
         return self.session.exec(statement).all()
 
+    def get_all_by_mp_payment_id(self, mp_payment_id: int) -> List[Pago]:
+        """Get pagos by MercadoPago payment ID"""
+        statement = select(Pago).where(Pago.mp_payment_id == mp_payment_id)
+        return list(self.session.exec(statement).all())
+
+    def get_by_external_reference(self, external_reference: str) -> Optional[Pago]:
+        """Get pago by external reference (UUID del pedido)"""
+        statement = select(Pago).where(Pago.external_reference == external_reference)
+        return self.session.exec(statement).first()
+
     def get_by_id(self, pago_id: int) -> Optional[Pago]:
         """Get pago by ID"""
         return self.session.get(Pago, pago_id)
