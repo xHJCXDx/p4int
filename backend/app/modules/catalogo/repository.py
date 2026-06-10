@@ -18,7 +18,7 @@ class UnidadMedidaRepository(BaseRepository[UnidadMedida]):
 
     def is_in_use(self, codigo: str) -> bool:
         """Verifica si la unidad de medida está siendo usada por algún ingrediente."""
-        from app.modules.ingrediente.model import Ingrediente
+        from app.modules.ingredientes.model import Ingrediente
         result = self.session.exec(
             select(Ingrediente).where(Ingrediente.unidad_medida_codigo == codigo)
         ).first()

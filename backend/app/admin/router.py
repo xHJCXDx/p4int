@@ -4,8 +4,8 @@ from sqlmodel import Session
 from app.core.database import get_session
 from app.core.response import success_response, error_response, ApiResponse
 from app.core.security import require_roles
-from app.modules.usuario.schema import UsuarioUpdate
-from app.modules.usuario import service as usuario_service
+from app.modules.usuarios.schema import UsuarioUpdate
+from app.modules.usuarios import service as usuario_service
 
 router = APIRouter(prefix="/api/v1/admin", tags=["Admin"])
 

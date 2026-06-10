@@ -16,13 +16,13 @@ def get_unidad_medida(session: Session, codigo: str) -> Optional[UnidadMedida]:
         return uow.unidades_medida.get_by_id(codigo)
 
 
-def create_unidad_medida(session: Session, codigo: str, nombre: str) -> Optional[UnidadMedida]:
+def create_unidad_medida(session: Session, data) -> Optional[UnidadMedida]:
     """Crea una unidad de medida. Retorna None si ya existe."""
     with CatalogoUnitOfWork(session) as uow:
-        existing = uow.unidades_medida.get_by_id(codigo)
+        existing = uow.unidades_medida.get_by_id(data.codigo)
         if existing:
             return None
-        new_um = UnidadMedida(codigo=codigo, nombre=nombre)
+        new_um = UnidadMedida(codigo=data.codigo, nombre=data.nombre, simbolo=data.simbolo, tipo=data.tipo)
         uow.unidades_medida.create(new_um)
     return new_um
 

@@ -1,5 +1,6 @@
 from typing import Generic, TypeVar, Optional, Any
 from pydantic import BaseModel
+from fastapi.responses import JSONResponse
 
 T = TypeVar('T')
 
@@ -21,11 +22,14 @@ def success_response(data: Any = None, message: str = "Operación exitosa", stat
     )
 
 
-def error_response(message: str, status_code: int = 400, data: Any = None) -> ApiResponse:
-    """Retorna una respuesta de error"""
-    return ApiResponse(
-        success=False,
-        message=message,
-        data=data,
-        status_code=status_code
+def error_response(message: str, status_code: int = 400, data: Any = None) -> JSONResponse:
+    """Retorna una respuesta de error con el HTTP status code real."""
+    return JSONResponse(
+        status_code=status_code,
+        content={
+            "success": False,
+            "message": message,
+            "data": data,
+            "status_code": status_code
+        }
     )

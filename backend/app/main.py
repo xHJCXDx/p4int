@@ -3,20 +3,22 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlmodel import Session
 from app.core.database import create_db_and_tables, engine
-from app.modules.categoria.router import router as categoria_router
-from app.modules.producto.router import router as producto_router
-from app.modules.ingrediente.router import router as ingrediente_router
-from app.modules.venta.router import router as venta_router
-from app.modules.usuario.router import router as auth_router
-from app.modules.direccion.router import router as direccion_router
+from app.modules.categorias.router import router as categoria_router
+from app.modules.productos.router import router as producto_router
+from app.modules.ingredientes.router import router as ingrediente_router
+from app.modules.pedidos.router import router as pedidos_router
+from app.modules.pagos.router import router as pagos_router
+from app.modules.auth.router import router as auth_router
+from app.modules.direcciones.router import router as direccion_router
 from app.admin.router import router as admin_router
 from app.modules.catalogo.model import UnidadMedida, FormaPago, EstadoPedido  # noqa: F401 — force table registration
+from app.modules.pagos.model import Pago  # noqa: F401 — force table registration
 from app.modules.catalogo.router import router as catalogo_router
-from app.modules.usuario.seed import seed_roles, seed_users
+from app.modules.usuarios.seed import seed_roles, seed_users
 from app.modules.catalogo.seed import seed_catalogos
-from app.modules.ingrediente.seed import seed_ingredientes
-from app.modules.categoria.seed import seed_categorias
-from app.modules.producto.seed import seed_productos
+from app.modules.ingredientes.seed import seed_ingredientes
+from app.modules.categorias.seed import seed_categorias
+from app.modules.productos.seed import seed_productos
 
 
 @asynccontextmanager
@@ -53,7 +55,8 @@ app.include_router(admin_router)
 app.include_router(categoria_router)
 app.include_router(producto_router)
 app.include_router(ingrediente_router)
-app.include_router(venta_router)
+app.include_router(pedidos_router)
+app.include_router(pagos_router)
 app.include_router(catalogo_router)
 
 @app.get("/")

@@ -14,7 +14,7 @@ def read_unidades_medida(session: Session = Depends(get_session)) -> ApiResponse
     """Listado de unidades de medida."""
     unidades = service.get_all_unidades_medida(session)
     return success_response(
-        data=[{"codigo": u.codigo, "nombre": u.nombre} for u in unidades],
+        data=[{"codigo": u.codigo, "nombre": u.nombre, "simbolo": u.simbolo, "tipo": u.tipo} for u in unidades],
         message="Unidades de medida obtenidas"
     )
 
@@ -22,11 +22,11 @@ def read_unidades_medida(session: Session = Depends(get_session)) -> ApiResponse
 @router.post("/unidades-medida", status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_roles("ADMIN", "STOCK"))])
 def create_unidad_medida(data: UnidadMedidaCreate, session: Session = Depends(get_session)) -> ApiResponse:
     """Crear unidad de medida (ADMIN o STOCK)."""
-    nueva = service.create_unidad_medida(session, data.codigo, data.nombre)
+    nueva = service.create_unidad_medida(session, data)
     if not nueva:
         return error_response(message=f"La unidad '{data.codigo}' ya existe", status_code=400)
     return success_response(
-        data={"codigo": nueva.codigo, "nombre": nueva.nombre},
+        data={"codigo": nueva.codigo, "nombre": nueva.nombre, "simbolo": nueva.simbolo, "tipo": nueva.tipo},
         message="Unidad de medida creada",
         status_code=201
     )

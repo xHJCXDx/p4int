@@ -230,10 +230,7 @@ POST {{baseUrl}}/pedidos/1/transition-estado?nuevo_estado=CONFIRMADO
 ### POST - Transicionar estado: CONFIRMADO → EN_PREP
 POST {{baseUrl}}/pedidos/1/transition-estado?nuevo_estado=EN_PREP
 
-### POST - Transicionar estado: EN_PREP → EN_CAMINO
-POST {{baseUrl}}/pedidos/1/transition-estado?nuevo_estado=EN_CAMINO
-
-### POST - Transicionar estado: EN_CAMINO → ENTREGADO
+### POST - Transicionar estado: EN_PREP → ENTREGADO
 POST {{baseUrl}}/pedidos/1/transition-estado?nuevo_estado=ENTREGADO
 
 ### POST - Cancelar pedido (requiere motivo)

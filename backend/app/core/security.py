@@ -73,7 +73,7 @@ def get_current_user(request: Request, session: Session = Depends(get_session)):
     Dependency que extrae el usuario actual del JWT token en la cookie.
     Importa Usuario aquí para evitar circular imports.
     """
-    from app.modules.usuario.unit_of_work import UsuarioUnitOfWork
+    from app.modules.usuarios.unit_of_work import UsuarioUnitOfWork
 
     token = request.cookies.get("access_token")
     if not token:
