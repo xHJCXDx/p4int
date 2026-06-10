@@ -20,10 +20,10 @@ class ProductoIngredienteLink(SQLModel, table=True):
 class ProductoBase(SQLModel):
     nombre: str = Field(index=True, max_length=150)
     descripcion: Optional[str] = None
-    precio_base: float
+    precio: float
     imagenes_url: List[str] = Field(default=[], sa_type=JSON)
     unidad_venta_codigo: Optional[str] = Field(default=None, foreign_key="unidadmedida.codigo", max_length=10)
-    stock_cantidad: int = Field(default=0, ge=0)
+    stock: int = Field(default=0, ge=0)
     disponible: bool = Field(default=True)
 
 class Producto(ProductoBase, table=True):

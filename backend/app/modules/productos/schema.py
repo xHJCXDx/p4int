@@ -43,10 +43,10 @@ class ProductoRead(ProductoBase):
 class ProductoUpdate(ProductoBase):
     nombre: Optional[str] = None
     descripcion: Optional[str] = None
-    precio_base: Optional[float] = None
+    precio: Optional[float] = None
     imagenes_url: Optional[List[str]] = None
     unidad_venta_codigo: Optional[str] = None
-    stock_cantidad: Optional[int] = None
+    stock: Optional[int] = None
     disponible: Optional[bool] = None
     categoria_ids: Optional[List[int]] = None
     ingredientes: Optional[List[IngredienteEnReceta]] = None

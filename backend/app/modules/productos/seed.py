@@ -13,8 +13,8 @@ def seed_productos(session: Session, categorias: Dict[str, Categoria], ingredien
         {
             "nombre": "Pizza Margherita",
             "descripcion": "Pizza clásica italiana con queso y tomate",
-            "precio_base": 250.0,
-            "stock_cantidad": 50,
+            "precio": 250.0,
+            "stock": 50,
             "disponible": True,
             "categoria_id": categorias["Pizzas"].id,
             "ingredientes": [
@@ -26,8 +26,8 @@ def seed_productos(session: Session, categorias: Dict[str, Categoria], ingredien
         {
             "nombre": "Pizza de Carne",
             "descripcion": "Pizza con carne molida, cebolla y ajo",
-            "precio_base": 290.0,
-            "stock_cantidad": 30,
+            "precio": 290.0,
+            "stock": 30,
             "disponible": True,
             "categoria_id": categorias["Pizzas"].id,
             "ingredientes": [
@@ -40,8 +40,8 @@ def seed_productos(session: Session, categorias: Dict[str, Categoria], ingredien
         {
             "nombre": "Empanadas de Carne",
             "descripcion": "6 empanadas de carne casera",
-            "precio_base": 120.0,
-            "stock_cantidad": 40,
+            "precio": 120.0,
+            "stock": 40,
             "disponible": True,
             "categoria_id": categorias["Empanadas"].id,
             "ingredientes": [
@@ -53,8 +53,8 @@ def seed_productos(session: Session, categorias: Dict[str, Categoria], ingredien
         {
             "nombre": "Empanadas de Queso",
             "descripcion": "6 empanadas de queso y cebolla",
-            "precio_base": 100.0,
-            "stock_cantidad": 40,
+            "precio": 100.0,
+            "stock": 40,
             "disponible": True,
             "categoria_id": categorias["Empanadas"].id,
             "ingredientes": [
@@ -66,8 +66,8 @@ def seed_productos(session: Session, categorias: Dict[str, Categoria], ingredien
         {
             "nombre": "Coca-Cola 2L",
             "descripcion": "Bebida gaseosa clásica",
-            "precio_base": 65.0,
-            "stock_cantidad": 100,
+            "precio": 65.0,
+            "stock": 100,
             "disponible": True,
             "unidad_venta_codigo": "u",
             "categoria_id": categorias["Bebidas"].id,
@@ -78,8 +78,8 @@ def seed_productos(session: Session, categorias: Dict[str, Categoria], ingredien
         {
             "nombre": "Jugo Natural Naranja",
             "descripcion": "Jugo fresco de naranja recién exprimido",
-            "precio_base": 45.0,
-            "stock_cantidad": 25,
+            "precio": 45.0,
+            "stock": 25,
             "disponible": True,
             "unidad_venta_codigo": "l",
             "categoria_id": categorias["Bebidas"].id,
@@ -90,8 +90,8 @@ def seed_productos(session: Session, categorias: Dict[str, Categoria], ingredien
         {
             "nombre": "Pizza de Chocolate",
             "descripcion": "Pizza dulce de chocolate con frutos secos",
-            "precio_base": 200.0,
-            "stock_cantidad": 0,
+            "precio": 200.0,
+            "stock": 0,
             "disponible": False,
             "categoria_id": categorias["Pizzas Dulces"].id,
             "ingredientes": [

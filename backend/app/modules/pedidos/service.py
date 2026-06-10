@@ -135,7 +135,7 @@ def create_pedido_from_checkout(session: Session, checkout_data: PedidoCreateFro
                     consumo_ingredientes.get(link.ingrediente_id, Decimal("0")) + total_necesario
                 )
 
-            linea_subtotal = producto.precio_base * linea.cantidad
+            linea_subtotal = producto.precio * linea.cantidad
             subtotal += linea_subtotal
             productos_info.append((producto, linea.cantidad, linea_subtotal))
 
@@ -144,10 +144,10 @@ def create_pedido_from_checkout(session: Session, checkout_data: PedidoCreateFro
             ingrediente = uow.ingredientes.get_by_id(ing_id)
             if not ingrediente:
                 raise ValueError(f"Ingrediente {ing_id} no existe o fue eliminado")
-            if ingrediente.stock_cantidad < cantidad_necesaria:
+            if ingrediente.stock < cantidad_necesaria:
                 raise ValueError(
                     f"Stock insuficiente de ingrediente '{ingrediente.nombre}': "
-                    f"disponible {ingrediente.stock_cantidad}, necesario {cantidad_necesaria}"
+                    f"disponible {ingrediente.stock}, necesario {cantidad_necesaria}"
                 )
 
         costo_envio = 50.0
@@ -174,7 +174,7 @@ def create_pedido_from_checkout(session: Session, checkout_data: PedidoCreateFro
                 producto_id=producto.id,
                 cantidad=cantidad,
                 nombre_snapshot=producto.nombre,
-                precio_snapshot=producto.precio_base,
+                precio_snapshot=producto.precio,
                 subtotal_snap=linea_subtotal,
             )
             uow.detalles.create(detalle)
@@ -183,7 +183,7 @@ def create_pedido_from_checkout(session: Session, checkout_data: PedidoCreateFro
         for ing_id, cantidad_necesaria in consumo_ingredientes.items():
             ingrediente = uow.ingredientes.get_by_id(ing_id)
             uow.ingredientes.update(ingrediente, {
-                "stock_cantidad": ingrediente.stock_cantidad - cantidad_necesaria
+                "stock": ingrediente.stock - cantidad_necesaria
             })
 
         # Historial inicial
