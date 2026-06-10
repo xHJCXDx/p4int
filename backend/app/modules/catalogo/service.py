@@ -39,3 +39,29 @@ def delete_unidad_medida(session: Session, codigo: str) -> Optional[str]:
 
         uow.unidades_medida.delete(um)
     return None
+
+
+# --- FormaPago ---
+
+def get_all_formas_pago(session: Session) -> List[FormaPago]:
+    with CatalogoUnitOfWork(session) as uow:
+        items, _ = uow.formas_pago.get_all()
+        return items
+
+
+def get_forma_pago(session: Session, codigo: str) -> Optional[FormaPago]:
+    with CatalogoUnitOfWork(session) as uow:
+        return uow.formas_pago.get_by_id(codigo)
+
+
+# --- EstadoPedido ---
+
+def get_all_estados_pedido(session: Session) -> List[EstadoPedido]:
+    with CatalogoUnitOfWork(session) as uow:
+        items, _ = uow.estados_pedido.get_all()
+        return items
+
+
+def get_estado_pedido(session: Session, codigo: str) -> Optional[EstadoPedido]:
+    with CatalogoUnitOfWork(session) as uow:
+        return uow.estados_pedido.get_by_id(codigo)

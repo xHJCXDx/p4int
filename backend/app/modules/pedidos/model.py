@@ -17,6 +17,7 @@ class Pedido(PedidoBase, table=True):
     descuento: float = Field(default=0.0, ge=0)
     costo_envio: float = Field(default=50.0, ge=0)
     total: float = Field(ge=0)
+    motivo_cancelacion: Optional[str] = Field(default=None, max_length=500)
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
     deleted_at: Optional[datetime] = None

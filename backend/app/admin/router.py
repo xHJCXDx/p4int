@@ -1,13 +1,56 @@
 from typing import Optional
 from fastapi import APIRouter, Depends, Query
-from sqlmodel import Session
+from sqlmodel import Session, select, func
 from app.core.database import get_session
 from app.core.response import success_response, error_response, ApiResponse
 from app.core.security import require_roles
 from app.modules.usuarios.schema import UsuarioUpdate
 from app.modules.usuarios import service as usuario_service
+from app.modules.pedidos.model import Pedido
+from app.modules.usuarios.model import Usuario
 
 router = APIRouter(prefix="/api/v1/admin", tags=["Admin"])
+
+
+@router.get("/stats", dependencies=[Depends(require_roles("ADMIN"))])
+def dashboard_stats(session: Session = Depends(get_session)) -> ApiResponse:
+    """Estadísticas generales del sistema."""
+    total_usuarios = session.exec(
+        select(func.count()).select_from(Usuario).where(Usuario.deleted_at.is_(None))
+    ).one()
+    total_pedidos = session.exec(
+        select(func.count()).select_from(Pedido).where(Pedido.deleted_at.is_(None))
+    ).one()
+    pedidos_por_estado = session.exec(
+        select(Pedido.estado_codigo, func.count())
+        .where(Pedido.deleted_at.is_(None))
+        .group_by(Pedido.estado_codigo)
+    ).all()
+    ingresos = session.exec(
+        select(func.coalesce(func.sum(Pedido.total), 0))
+        .where(Pedido.deleted_at.is_(None))
+        .where(Pedido.estado_codigo.notin_(["CANCELADO"]))
+    ).one()
+
+    return success_response(
+        data={
+            "total_usuarios": total_usuarios,
+            "total_pedidos": total_pedidos,
+            "pedidos_por_estado": {estado: count for estado, count in pedidos_por_estado},
+            "ingresos_totales": float(ingresos),
+        },
+        message="Estadísticas del sistema",
+    )
+
+
+@router.get("/roles", dependencies=[Depends(require_roles("ADMIN"))])
+def listar_roles(session: Session = Depends(get_session)) -> ApiResponse:
+    """Listado de roles del sistema."""
+    roles = usuario_service.get_all_roles(session)
+    return success_response(
+        data=[{"codigo": r.codigo, "nombre": r.nombre, "descripcion": r.descripcion} for r in roles],
+        message="Roles listados",
+    )
 
 
 @router.get("/usuarios", dependencies=[Depends(require_roles("ADMIN"))])

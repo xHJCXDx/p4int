@@ -7,11 +7,14 @@ from pydantic import BaseModel
 
 class DireccionCreate(BaseModel):
     alias: str
-    linea1: str
-    linea2: Optional[str] = None
-    ciudad: str
+    calle: str
+    numero: str
+    localidad: str
     provincia: str
     codigo_postal: str
+    piso: Optional[str] = None
+    departamento: Optional[str] = None
+    referencia: Optional[str] = None
     latitud: Optional[float] = None
     longitud: Optional[float] = None
     es_principal: Optional[bool] = False
@@ -23,11 +26,14 @@ class DireccionRead(BaseModel):
     id: int
     usuario_id: int
     alias: str
-    linea1: str
-    linea2: Optional[str] = None
-    ciudad: str
+    calle: str
+    numero: str
+    localidad: str
     provincia: str
     codigo_postal: str
+    piso: Optional[str] = None
+    departamento: Optional[str] = None
+    referencia: Optional[str] = None
     latitud: Optional[float] = None
     longitud: Optional[float] = None
     es_principal: bool
@@ -36,11 +42,14 @@ class DireccionRead(BaseModel):
 
 class DireccionUpdate(BaseModel):
     alias: Optional[str] = None
-    linea1: Optional[str] = None
-    linea2: Optional[str] = None
-    ciudad: Optional[str] = None
+    calle: Optional[str] = None
+    numero: Optional[str] = None
+    localidad: Optional[str] = None
     provincia: Optional[str] = None
     codigo_postal: Optional[str] = None
+    piso: Optional[str] = None
+    departamento: Optional[str] = None
+    referencia: Optional[str] = None
     latitud: Optional[float] = None
     longitud: Optional[float] = None
     es_principal: Optional[bool] = None

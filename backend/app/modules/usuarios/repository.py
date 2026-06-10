@@ -42,6 +42,10 @@ class UsuarioRepository(BaseRepository[Usuario]):
 
         return items, total
 
+    def get_all_roles(self) -> list[Rol]:
+        """Obtiene todos los roles del sistema."""
+        return list(self.session.exec(select(Rol)).all())
+
     def get_rol(self, codigo: str) -> Optional[Rol]:
         """Obtiene un rol por código."""
         return self.session.get(Rol, codigo)

@@ -17,6 +17,12 @@ def usuario_to_read(usuario: Usuario) -> UsuarioRead:
     )
 
 
+def get_all_roles(session: Session):
+    """Obtiene todos los roles del sistema."""
+    with UsuarioUnitOfWork(session) as uow:
+        return uow.usuarios.get_all_roles()
+
+
 def get_all_paginado(session: Session, limit: int = 10, offset: int = 0, rol_codigo: Optional[str] = None) -> Tuple[List[Usuario], int]:
     """Obtiene usuarios paginados, opcionalmente filtrando por rol."""
     with UsuarioUnitOfWork(session) as uow:

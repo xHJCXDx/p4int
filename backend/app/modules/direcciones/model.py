@@ -8,11 +8,14 @@ from sqlmodel import Field, SQLModel
 class DireccionEntregaBase(SQLModel):
     usuario_id: int = Field(foreign_key="usuario.id")
     alias: str = Field(max_length=50)
-    linea1: str = Field(max_length=200)
-    linea2: Optional[str] = Field(default=None, max_length=200)
-    ciudad: str = Field(max_length=100)
+    calle: str = Field(max_length=200)
+    numero: str = Field(max_length=20)
+    localidad: str = Field(max_length=100)
     provincia: str = Field(max_length=100)
     codigo_postal: str = Field(max_length=10)
+    piso: Optional[str] = Field(default=None, max_length=10)
+    departamento: Optional[str] = Field(default=None, max_length=10)
+    referencia: Optional[str] = Field(default=None, max_length=200)
     latitud: Optional[float] = None
     longitud: Optional[float] = None
     es_principal: bool = Field(default=False)

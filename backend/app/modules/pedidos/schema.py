@@ -38,6 +38,7 @@ class PedidoRead(PedidoBase):
     descuento: float
     costo_envio: float
     total: float
+    motivo_cancelacion: Optional[str] = None
     created_at: datetime
     updated_at: datetime
     deleted_at: Optional[datetime] = None

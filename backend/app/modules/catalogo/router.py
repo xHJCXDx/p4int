@@ -40,3 +40,27 @@ def delete_unidad_medida(codigo: str, session: Session = Depends(get_session)) -
         status_code = 404 if "no encontrada" in error else 400
         return error_response(message=error, status_code=status_code)
     return success_response(message="Unidad de medida eliminada")
+
+
+# --- Formas de Pago ---
+
+@router.get("/formas-pago")
+def read_formas_pago(session: Session = Depends(get_session)) -> ApiResponse:
+    """Listado de formas de pago."""
+    formas = service.get_all_formas_pago(session)
+    return success_response(
+        data=[{"codigo": f.codigo, "descripcion": f.descripcion, "habilitado": f.habilitado} for f in formas],
+        message="Formas de pago obtenidas",
+    )
+
+
+# --- Estados de Pedido ---
+
+@router.get("/estados-pedido")
+def read_estados_pedido(session: Session = Depends(get_session)) -> ApiResponse:
+    """Listado de estados de pedido."""
+    estados = service.get_all_estados_pedido(session)
+    return success_response(
+        data=[{"codigo": e.codigo, "descripcion": e.descripcion, "orden": e.orden, "es_terminal": e.es_terminal} for e in estados],
+        message="Estados de pedido obtenidos",
+    )

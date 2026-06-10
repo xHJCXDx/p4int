@@ -244,6 +244,9 @@ def transition_estado(
 
         uow.pedidos.update_estado(pedido, nuevo_estado)
 
+        if nuevo_estado == "CANCELADO" and motivo:
+            uow.pedidos.update(pedido, {"motivo_cancelacion": motivo})
+
         historial = HistorialEstadoPedido(
             pedido_id=pedido_id,
             estado_desde=estado_actual,
@@ -253,7 +256,30 @@ def transition_estado(
         )
         uow.historial.create(historial)
         uow.pedidos.refresh(pedido)
+
+    _notify_estado_change(pedido, estado_actual, nuevo_estado)
     return pedido
+
+
+def _notify_estado_change(pedido, estado_desde: str, estado_hacia: str):
+    """Notifica cambio de estado via WebSocket (fire-and-forget)."""
+    import asyncio
+    from app.core.ws_manager import ws_manager
+
+    message = {
+        "type": "pedido_estado",
+        "pedido_id": pedido.id,
+        "estado_desde": estado_desde,
+        "estado_hacia": estado_hacia,
+    }
+    try:
+        loop = asyncio.get_event_loop()
+        if loop.is_running():
+            loop.create_task(ws_manager.send_to_user(pedido.usuario_id, message))
+        else:
+            loop.run_until_complete(ws_manager.send_to_user(pedido.usuario_id, message))
+    except RuntimeError:
+        pass
 
 
 # ============ DETALLE PEDIDO SERVICE ============
