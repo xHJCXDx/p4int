@@ -1,4 +1,4 @@
-"""Schemas Pydantic para Usuario."""
+"""Schemas Pydantic para Usuario y Auth."""
 
 from typing import Optional, List
 from pydantic import BaseModel, EmailStr
@@ -48,3 +48,16 @@ class PasswordChange(BaseModel):
     """Schema para cambiar contraseña."""
     current_password: str
     new_password: str
+
+
+class TokenResponse(BaseModel):
+    """Respuesta de login/refresh con ambos tokens JWT."""
+    access_token: str
+    refresh_token: str
+    token_type: str = "bearer"
+    expires_in: int
+
+
+class RefreshTokenRequest(BaseModel):
+    """Body para refresh y logout."""
+    refresh_token: str

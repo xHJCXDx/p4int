@@ -2,8 +2,12 @@ from typing import Optional
 from datetime import timedelta
 from sqlmodel import Session
 from app.modules.usuarios.model import Usuario
-from app.modules.usuarios.schema import UsuarioCreate, UsuarioUpdate, UsuarioRead
-from app.core.security import hash_password, verify_password, create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES
+from app.modules.usuarios.schema import UsuarioCreate, UsuarioUpdate, UsuarioRead, TokenResponse
+from app.core.security import (
+    hash_password, verify_password,
+    create_access_token, create_refresh_token, verify_token,
+    ACCESS_TOKEN_EXPIRE_MINUTES,
+)
 from app.modules.usuarios.unit_of_work import UsuarioUnitOfWork
 
 
@@ -52,29 +56,47 @@ def login_user(session: Session, email: str, password: str) -> Optional[Usuario]
         return user
 
 
-def create_login_token(user: Usuario) -> str:
-    """Crea un JWT access token para el usuario autenticado."""
+def create_login_tokens(user: Usuario) -> TokenResponse:
+    """Crea access + refresh tokens para el usuario autenticado."""
     user_roles = [role.codigo for role in user.roles]
+    token_data = {"sub": str(user.id)}
+
     access_token = create_access_token(
-        data={"sub": str(user.id)},
+        data=token_data,
         roles=user_roles,
-        expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
     )
-    return access_token
+    refresh = create_refresh_token(data=token_data, roles=user_roles)
+
+    return TokenResponse(
+        access_token=access_token,
+        refresh_token=refresh,
+        expires_in=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+    )
 
 
-def refresh_access_token(token: str) -> str:
-    """Re-emite un access token a partir de uno válido."""
-    from app.core.security import verify_token
+def refresh_from_token(refresh_token_str: str) -> TokenResponse:
+    """Valida un refresh token y emite un nuevo par access + refresh."""
+    payload = verify_token(refresh_token_str)
 
-    payload = verify_token(token)
+    if payload.get("type") != "refresh":
+        raise ValueError("Se requiere un refresh token")
+
     user_id = payload.get("sub")
     roles = payload.get("roles", [])
+    token_data = {"sub": str(user_id)}
 
-    return create_access_token(
-        data={"sub": str(user_id)},
+    access_token = create_access_token(
+        data=token_data,
         roles=roles,
-        expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
+    )
+    refresh = create_refresh_token(data=token_data, roles=roles)
+
+    return TokenResponse(
+        access_token=access_token,
+        refresh_token=refresh,
+        expires_in=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
     )
 
 

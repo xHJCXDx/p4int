@@ -1,10 +1,13 @@
-from fastapi import APIRouter, Depends, status, Response, Request
+from fastapi import APIRouter, Depends, status
 from sqlmodel import Session
 
 from app.core.database import get_session
 from app.core.response import success_response, error_response, ApiResponse
-from app.core.security import get_current_user, ACCESS_TOKEN_EXPIRE_MINUTES
-from app.modules.usuarios.schema import UsuarioCreate, UsuarioLogin, UsuarioUpdate, PasswordChange
+from app.core.security import get_current_user
+from app.modules.usuarios.schema import (
+    UsuarioCreate, UsuarioLogin, UsuarioUpdate, PasswordChange,
+    TokenResponse, RefreshTokenRequest,
+)
 from app.modules.usuarios.model import Usuario
 from app.modules.auth import service
 
@@ -30,32 +33,24 @@ def register(
 @router.post("/login")
 def login(
     credentials: UsuarioLogin,
-    response: Response,
-    session: Session = Depends(get_session)
+    session: Session = Depends(get_session),
 ) -> ApiResponse:
     user = service.login_user(session, credentials.email, credentials.password)
 
     if not user:
         return error_response(
             message="Email o contraseña inválidos",
-            status_code=status.HTTP_401_UNAUTHORIZED
+            status_code=status.HTTP_401_UNAUTHORIZED,
         )
 
-    access_token = service.create_login_token(user)
-
-    response.set_cookie(
-        key="access_token",
-        value=access_token,
-        httponly=True,
-        secure=False,
-        samesite="lax",
-        path="/",
-        max_age=60 * ACCESS_TOKEN_EXPIRE_MINUTES
-    )
+    tokens = service.create_login_tokens(user)
 
     return success_response(
-        data=service.usuario_to_read(user),
-        message="Autenticación exitosa"
+        data={
+            "user": service.usuario_to_read(user).model_dump(),
+            "tokens": tokens.model_dump(),
+        },
+        message="Autenticación exitosa",
     )
 
 
@@ -96,36 +91,22 @@ def change_password(
 
 
 @router.post("/refresh")
-def refresh_token(
-    request: Request,
-    response: Response,
-    session: Session = Depends(get_session)
-) -> ApiResponse:
-    """Re-emite un access token si el actual sigue siendo válido."""
-    token = request.cookies.get("access_token")
-    if not token:
-        return error_response(message="No autenticado", status_code=401)
-
+def refresh_token(body: RefreshTokenRequest) -> ApiResponse:
+    """Emite nuevo par de tokens a partir de un refresh_token válido."""
     try:
-        new_token = service.refresh_access_token(token)
-    except Exception:
-        return error_response(message="Token inválido o expirado", status_code=401)
-
-    response.set_cookie(
-        key="access_token",
-        value=new_token,
-        httponly=True,
-        secure=False,
-        samesite="lax",
-        path="/",
-        max_age=60 * ACCESS_TOKEN_EXPIRE_MINUTES
-    )
-
-    return success_response(message="Token renovado exitosamente")
+        tokens = service.refresh_from_token(body.refresh_token)
+        return success_response(
+            data=tokens.model_dump(),
+            message="Token renovado exitosamente",
+        )
+    except (ValueError, Exception):
+        return error_response(message="Refresh token inválido o expirado", status_code=401)
 
 
 @router.post("/logout")
-def logout(response: Response) -> ApiResponse:
-    """Cierra la sesión borrando la cookie de acceso."""
-    response.delete_cookie(key="access_token")
+def logout(
+    body: RefreshTokenRequest,
+    current_user: Usuario = Depends(get_current_user),
+) -> ApiResponse:
+    """Cierra la sesión. Requiere Bearer token + refresh_token en body."""
     return success_response(message="Sesión cerrada exitosamente")

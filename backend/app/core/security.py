@@ -6,14 +6,18 @@ from typing import Optional, List
 import jwt
 import bcrypt
 from fastapi import Depends, HTTPException, status, Request
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlmodel import Session
 
 from app.core.database import get_session
 
 # JWT Configuration
-JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "123456")
-JWT_ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+JWT_SECRET_KEY = os.getenv("SECRET_KEY", "your-super-secret-key-min-32-chars")
+JWT_ALGORITHM = os.getenv("ALGORITHM", "HS256")
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
+REFRESH_TOKEN_EXPIRE_DAYS = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", "7"))
+
+bearer_scheme = HTTPBearer(auto_error=False)
 
 def hash_password(plain_password: str) -> str:
     """Hashea una contraseña con bcrypt (cost factor = 12)."""
@@ -35,6 +39,7 @@ def create_access_token(data: dict, roles: Optional[List[str]] = None, expires_d
         to_encode["sub"] = str(to_encode["sub"])
     if roles is not None:
         to_encode["roles"] = roles
+    to_encode["type"] = "access"
     if expires_delta:
         expire = datetime.utcnow() + expires_delta
     else:
@@ -43,6 +48,19 @@ def create_access_token(data: dict, roles: Optional[List[str]] = None, expires_d
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
     return encoded_jwt
+
+
+def create_refresh_token(data: dict, roles: Optional[List[str]] = None) -> str:
+    """Crea un JWT refresh token con expiración extendida (días)."""
+    to_encode = data.copy()
+    if "sub" in to_encode:
+        to_encode["sub"] = str(to_encode["sub"])
+    if roles is not None:
+        to_encode["roles"] = roles
+    to_encode["type"] = "refresh"
+    expire = datetime.utcnow() + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+    to_encode.update({"exp": expire})
+    return jwt.encode(to_encode, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
 
 
 def verify_token(token: str) -> dict:
@@ -68,26 +86,33 @@ def verify_token(token: str) -> dict:
 
 
 
-def get_current_user(request: Request, session: Session = Depends(get_session)):
-    """
-    Dependency que extrae el usuario actual del JWT token en la cookie.
-    Importa Usuario aquí para evitar circular imports.
-    """
+def get_current_user(
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(bearer_scheme),
+    session: Session = Depends(get_session),
+):
+    """Extrae el usuario actual del header Authorization: Bearer <token>."""
     from app.modules.usuarios.unit_of_work import UsuarioUnitOfWork
 
-    token = request.cookies.get("access_token")
-    if not token:
+    if not credentials:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="No autenticado"
+            detail="No autenticado",
+            headers={"WWW-Authenticate": "Bearer"},
         )
 
-    payload = verify_token(token)
+    payload = verify_token(credentials.credentials)
+
+    if payload.get("type") != "access":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token inválido: se requiere access token",
+        )
+
     sub = payload.get("sub")
     if not sub:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token inválido"
+            detail="Token inválido",
         )
 
     user_id = int(sub)
@@ -98,7 +123,7 @@ def get_current_user(request: Request, session: Session = Depends(get_session)):
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Usuario no encontrado"
+            detail="Usuario no encontrado",
         )
 
     return user
