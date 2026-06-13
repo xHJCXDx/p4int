@@ -1,35 +1,35 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import apiClient from '../api/axios';
+import apiClient, { ApiResponse, PaginatedData } from '../api/axios';
 import { Ingrediente, UnidadMedida } from '../types/ingrediente';
 
 const API_URL = '/ingredientes';
 const CATALOGO_URL = '/catalogo';
 
 const fetchIngredientes = async (limit = 100, offset = 0): Promise<Ingrediente[]> => {
-  const response = await apiClient.get<any>(API_URL, {
+  const response = await apiClient.get<ApiResponse<PaginatedData<Ingrediente>>>(API_URL, {
     params: { limit, offset },
   });
   return response.data.data.items || [];
 };
 
 const fetchIngrediente = async (id: number): Promise<Ingrediente> => {
-  const response = await apiClient.get<any>(`${API_URL}/${id}`);
-  return response.data.data || response.data;
+  const response = await apiClient.get<ApiResponse<Ingrediente>>(`${API_URL}/${id}`);
+  return response.data.data;
 };
 
 const createIngrediente = async (
   data: Omit<Ingrediente, 'id' | 'created_at' | 'updated_at'>
 ): Promise<Ingrediente> => {
-  const response = await apiClient.post<any>(API_URL, data);
-  return response.data.data || response.data;
+  const response = await apiClient.post<ApiResponse<Ingrediente>>(API_URL, data);
+  return response.data.data;
 };
 
 const updateIngrediente = async (
   id: number,
   data: Omit<Ingrediente, 'id' | 'created_at' | 'updated_at'>
 ): Promise<Ingrediente> => {
-  const response = await apiClient.put<any>(`${API_URL}/${id}`, data);
-  return response.data.data || response.data;
+  const response = await apiClient.put<ApiResponse<Ingrediente>>(`${API_URL}/${id}`, data);
+  return response.data.data;
 };
 
 const deleteIngrediente = async (id: number): Promise<void> => {
@@ -37,13 +37,13 @@ const deleteIngrediente = async (id: number): Promise<void> => {
 };
 
 const fetchUnidadesMedida = async (): Promise<UnidadMedida[]> => {
-  const response = await apiClient.get<any>(`${CATALOGO_URL}/unidades-medida`);
+  const response = await apiClient.get<ApiResponse<UnidadMedida[]>>(`${CATALOGO_URL}/unidades-medida`);
   return response.data.data || [];
 };
 
 const createUnidadMedida = async (data: UnidadMedida): Promise<UnidadMedida> => {
-  const response = await apiClient.post<any>(`${CATALOGO_URL}/unidades-medida`, data);
-  return response.data.data || response.data;
+  const response = await apiClient.post<ApiResponse<UnidadMedida>>(`${CATALOGO_URL}/unidades-medida`, data);
+  return response.data.data;
 };
 
 const deleteUnidadMedida = async (codigo: string): Promise<void> => {

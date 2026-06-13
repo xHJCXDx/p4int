@@ -16,7 +16,7 @@ export function PedidoFormSimple({
 }: PedidoFormSimpleProps) {
   const [formData, setFormData] = useState<Omit<Pedido, 'id' | 'created_at' | 'updated_at' | 'deleted_at'>>({
     usuario_id: initialData?.usuario_id || 1,
-    direccion_id: initialData?.direccion_id,
+    direccion_id: initialData?.direccion_id || 0,
     estado_codigo: initialData?.estado_codigo || 'PENDIENTE',
     forma_pago_codigo: initialData?.forma_pago_codigo || 'MERCADOPAGO',
     subtotal: initialData?.subtotal || 0,

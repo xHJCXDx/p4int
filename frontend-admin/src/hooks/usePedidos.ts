@@ -1,34 +1,34 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import apiClient from '../api/axios';
+import apiClient, { ApiResponse, PaginatedData } from '../api/axios';
 import { Pedido } from '../types/pedido';
 
 const API_URL = '/pedidos';
 
 const fetchPedidos = async (limit = 100, offset = 0): Promise<Pedido[]> => {
-  const response = await apiClient.get<any>(API_URL, {
+  const response = await apiClient.get<ApiResponse<PaginatedData<Pedido>>>(API_URL, {
     params: { limit, offset },
   });
   return response.data.data.items || [];
 };
 
 const fetchPedido = async (id: number): Promise<Pedido> => {
-  const response = await apiClient.get<any>(`${API_URL}/${id}`);
-  return response.data.data || response.data;
+  const response = await apiClient.get<ApiResponse<Pedido>>(`${API_URL}/${id}`);
+  return response.data.data;
 };
 
 const createPedido = async (
   data: Omit<Pedido, 'id' | 'created_at' | 'updated_at' | 'deleted_at'>
 ): Promise<Pedido> => {
-  const response = await apiClient.post<any>(API_URL, data);
-  return response.data.data || response.data;
+  const response = await apiClient.post<ApiResponse<Pedido>>(API_URL, data);
+  return response.data.data;
 };
 
 const updatePedido = async (
   id: number,
   data: Omit<Pedido, 'id' | 'created_at' | 'updated_at' | 'deleted_at'>
 ): Promise<Pedido> => {
-  const response = await apiClient.put<any>(`${API_URL}/${id}`, data);
-  return response.data.data || response.data;
+  const response = await apiClient.put<ApiResponse<Pedido>>(`${API_URL}/${id}`, data);
+  return response.data.data;
 };
 
 const deletePedido = async (id: number): Promise<void> => {
@@ -39,12 +39,12 @@ const transitionEstado = async (
   pedido_id: number,
   accion: string
 ): Promise<Pedido> => {
-  const response = await apiClient.post<any>(
+  const response = await apiClient.post<ApiResponse<Pedido>>(
     `${API_URL}/${pedido_id}/transition-estado`,
     {},
     { params: { accion } }
   );
-  return response.data.data || response.data;
+  return response.data.data;
 };
 
 export const usePedidos = (limit = 100, offset = 0) => {

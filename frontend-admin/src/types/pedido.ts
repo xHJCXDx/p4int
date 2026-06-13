@@ -12,18 +12,18 @@ export interface DetalleInPedido {
 }
 
 export interface Pedido {
-  id?: number;
-  usuario_id?: number;
-  direccion_id?: number;
-  estado_codigo?: string;
-  forma_pago_codigo?: string;
+  id: number;
+  usuario_id: number;
+  direccion_id: number;
+  estado_codigo: string;
+  forma_pago_codigo: string;
   subtotal?: number;
   descuento?: number;
   costo_envio?: number;
   total?: number;
   notas?: string;
   detalles?: DetalleInPedido[];
-  created_at?: string;
+  created_at: string;
   updated_at?: string;
   deleted_at?: string | null;
 }
