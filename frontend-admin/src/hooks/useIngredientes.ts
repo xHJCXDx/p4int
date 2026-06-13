@@ -5,9 +5,9 @@ import { Ingrediente, UnidadMedida } from '../types/ingrediente';
 const API_URL = '/ingredientes';
 const CATALOGO_URL = '/catalogo';
 
-const fetchIngredientes = async (limit = 100, offset = 0): Promise<Ingrediente[]> => {
+const fetchIngredientes = async (page = 1, size = 100): Promise<Ingrediente[]> => {
   const response = await apiClient.get<ApiResponse<PaginatedData<Ingrediente>>>(API_URL, {
-    params: { limit, offset },
+    params: { page, size },
   });
   return response.data.data.items || [];
 };
@@ -50,10 +50,10 @@ const deleteUnidadMedida = async (codigo: string): Promise<void> => {
   await apiClient.delete(`${CATALOGO_URL}/unidades-medida/${codigo}`);
 };
 
-export const useIngredientes = (limit = 100, offset = 0) => {
+export const useIngredientes = (page = 1, size = 100) => {
   return useQuery({
-    queryKey: ['ingredientes', limit, offset],
-    queryFn: () => fetchIngredientes(limit, offset),
+    queryKey: ['ingredientes', page, size],
+    queryFn: () => fetchIngredientes(page, size),
   });
 };
 

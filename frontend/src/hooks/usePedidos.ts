@@ -4,9 +4,9 @@ import { Pedido, PedidoCheckoutCreate } from '../types/pedido';
 
 const API_URL = '/pedidos';
 
-const fetchPedidos = async (limit = 100, offset = 0): Promise<Pedido[]> => {
+const fetchPedidos = async (page = 1, size = 100): Promise<Pedido[]> => {
   const response = await apiClient.get<ApiResponse<PaginatedData<Pedido>>>(API_URL, {
-    params: { limit, offset },
+    params: { page, size },
   });
   return response.data.data.items || [];
 };
@@ -42,10 +42,10 @@ const transitionEstado = async (pedido_id: number, accion: string): Promise<Pedi
   return response.data.data;
 };
 
-export const usePedidos = (limit = 100, offset = 0) => {
+export const usePedidos = (page = 1, size = 100) => {
   return useQuery({
-    queryKey: ['pedidos', limit, offset],
-    queryFn: () => fetchPedidos(limit, offset),
+    queryKey: ['pedidos', page, size],
+    queryFn: () => fetchPedidos(page, size),
   });
 };
 

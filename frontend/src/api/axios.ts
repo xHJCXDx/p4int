@@ -9,12 +9,13 @@ export interface ApiResponse<T = unknown> {
   status_code: number;
 }
 
-/** Paginated list wrapper */
+/** Paginated list wrapper (page/size format) */
 export interface PaginatedData<T> {
   items: T[];
   total: number;
-  limit: number;
-  offset: number;
+  page: number;
+  size: number;
+  pages: number;
 }
 
 /** Extract error message from an AxiosError with backend shape */

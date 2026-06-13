@@ -2,7 +2,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, status, Query
 from sqlmodel import Session
 from app.core.database import get_session
-from app.core.response import success_response, error_response, ApiResponse
+from app.core.response import success_response, paginated_response, error_response, ApiResponse
 from app.core.security import get_current_user, require_roles
 from app.modules.pedidos.schema import (
     PedidoCreateFromCheckout, PedidoRead,
@@ -17,19 +17,18 @@ router = APIRouter(prefix="/api/v1/pedidos", tags=["Pedidos"])
 @router.get("/")
 def read_pedidos(
     session: Session = Depends(get_session),
-    limit: int = Query(10, ge=1, le=100),
-    offset: int = Query(0, ge=0),
+    page: int = Query(1, ge=1, description="Número de página"),
+    size: int = Query(10, ge=1, le=100, description="Elementos por página"),
     current_user: Usuario = Depends(get_current_user),
 ) -> ApiResponse:
     """Listar propios (CLIENT) o todos (ADMIN/PEDIDOS)."""
-    pedidos, total = service.get_all_pedidos(session, limit, offset, current_user=current_user)
-    return success_response(
-        data={
-            "items": [PedidoRead.model_validate(p) for p in pedidos],
-            "total": total,
-            "limit": limit,
-            "offset": offset,
-        },
+    offset = (page - 1) * size
+    pedidos, total = service.get_all_pedidos(session, size, offset, current_user=current_user)
+    return paginated_response(
+        items=[PedidoRead.model_validate(p) for p in pedidos],
+        total=total,
+        page=page,
+        size=size,
         message="Pedidos obtenidos exitosamente",
     )
 

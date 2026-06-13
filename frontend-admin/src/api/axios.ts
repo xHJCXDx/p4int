@@ -11,8 +11,9 @@ export interface ApiResponse<T = unknown> {
 export interface PaginatedData<T> {
   items: T[];
   total: number;
-  limit: number;
-  offset: number;
+  page: number;
+  size: number;
+  pages: number;
 }
 
 export function getApiErrorMessage(error: unknown, fallback = 'Error inesperado'): string {

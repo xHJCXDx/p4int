@@ -4,8 +4,8 @@ import { Categoria } from '../types/categoria';
 
 const API_URL = '/categorias';
 
-const fetchCategorias = async (limit = 100, offset = 0, parentId?: number): Promise<Categoria[]> => {
-  const params: Record<string, number> = { limit, offset };
+const fetchCategorias = async (page = 1, size = 100, parentId?: number): Promise<Categoria[]> => {
+  const params: Record<string, number> = { page, size };
   if (parentId !== undefined) {
     params.parent_id = parentId;
   }
@@ -38,10 +38,10 @@ const deleteCategoria = async (id: number): Promise<void> => {
   await apiClient.delete(`${API_URL}/${id}`);
 };
 
-export const useCategorias = (limit = 100, offset = 0, parentId?: number) => {
+export const useCategorias = (page = 1, size = 100, parentId?: number) => {
   return useQuery({
-    queryKey: ['categorias', limit, offset, parentId],
-    queryFn: () => fetchCategorias(limit, offset, parentId),
+    queryKey: ['categorias', page, size, parentId],
+    queryFn: () => fetchCategorias(page, size, parentId),
   });
 };
 

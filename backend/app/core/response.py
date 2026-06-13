@@ -22,6 +22,29 @@ def success_response(data: Any = None, message: str = "Operación exitosa", stat
     )
 
 
+def paginated_response(
+    items: list,
+    total: int,
+    page: int,
+    size: int,
+    message: str = "Operación exitosa",
+) -> ApiResponse:
+    """Respuesta paginada con formato page/size."""
+    import math
+    return ApiResponse(
+        success=True,
+        message=message,
+        data={
+            "items": items,
+            "total": total,
+            "page": page,
+            "size": size,
+            "pages": math.ceil(total / size) if size > 0 else 0,
+        },
+        status_code=200,
+    )
+
+
 def error_response(message: str, status_code: int = 400, data: Any = None) -> JSONResponse:
     """Retorna una respuesta de error con el HTTP status code real."""
     return JSONResponse(

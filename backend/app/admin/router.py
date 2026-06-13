@@ -1,13 +1,13 @@
 from typing import Optional
 from fastapi import APIRouter, Depends, Query
-from sqlmodel import Session, select, func
+from sqlmodel import Session
 from app.core.database import get_session
-from app.core.response import success_response, error_response, ApiResponse
+from app.core.response import success_response, paginated_response, error_response, ApiResponse
 from app.core.security import require_roles
 from app.modules.usuarios.schema import UsuarioUpdate
 from app.modules.usuarios import service as usuario_service
-from app.modules.pedidos.model import Pedido
-from app.modules.usuarios.model import Usuario
+from app.modules.usuarios.service import usuario_to_read
+from app.admin import service as admin_service
 
 router = APIRouter(prefix="/api/v1/admin", tags=["Admin"])
 
@@ -15,32 +15,8 @@ router = APIRouter(prefix="/api/v1/admin", tags=["Admin"])
 @router.get("/stats", dependencies=[Depends(require_roles("ADMIN"))])
 def dashboard_stats(session: Session = Depends(get_session)) -> ApiResponse:
     """Estadísticas generales del sistema."""
-    total_usuarios = session.exec(
-        select(func.count()).select_from(Usuario).where(Usuario.deleted_at.is_(None))
-    ).one()
-    total_pedidos = session.exec(
-        select(func.count()).select_from(Pedido).where(Pedido.deleted_at.is_(None))
-    ).one()
-    pedidos_por_estado = session.exec(
-        select(Pedido.estado_codigo, func.count())
-        .where(Pedido.deleted_at.is_(None))
-        .group_by(Pedido.estado_codigo)
-    ).all()
-    ingresos = session.exec(
-        select(func.coalesce(func.sum(Pedido.total), 0))
-        .where(Pedido.deleted_at.is_(None))
-        .where(Pedido.estado_codigo.notin_(["CANCELADO"]))
-    ).one()
-
-    return success_response(
-        data={
-            "total_usuarios": total_usuarios,
-            "total_pedidos": total_pedidos,
-            "pedidos_por_estado": {estado: count for estado, count in pedidos_por_estado},
-            "ingresos_totales": float(ingresos),
-        },
-        message="Estadísticas del sistema",
-    )
+    stats = admin_service.get_dashboard_stats(session)
+    return success_response(data=stats, message="Estadísticas del sistema")
 
 
 @router.get("/roles", dependencies=[Depends(require_roles("ADMIN"))])
@@ -56,20 +32,19 @@ def listar_roles(session: Session = Depends(get_session)) -> ApiResponse:
 @router.get("/usuarios", dependencies=[Depends(require_roles("ADMIN"))])
 def listar_usuarios(
     session: Session = Depends(get_session),
-    limit: int = Query(10, ge=1, le=100),
-    offset: int = Query(0, ge=0),
+    page: int = Query(1, ge=1, description="Número de página"),
+    size: int = Query(10, ge=1, le=100, description="Elementos por página"),
     rol: Optional[str] = Query(None, description="Filtrar por rol")
 ) -> ApiResponse:
-    usuarios, total = usuario_service.get_all_paginado(session, limit=limit, offset=offset, rol_codigo=rol)
+    offset = (page - 1) * size
+    usuarios, total = usuario_service.get_all_paginado(session, limit=size, offset=offset, rol_codigo=rol)
 
-    return success_response(
-        data={
-            "items": [usuario_service.usuario_to_read(u) for u in usuarios],
-            "total": total,
-            "limit": limit,
-            "offset": offset
-        },
-        message="Usuarios listados"
+    return paginated_response(
+        items=[usuario_to_read(u) for u in usuarios],
+        total=total,
+        page=page,
+        size=size,
+        message="Usuarios listados",
     )
 
 
@@ -84,7 +59,7 @@ def actualizar_usuario(
         return error_response(message="Usuario no encontrado", status_code=404)
 
     return success_response(
-        data=usuario_service.usuario_to_read(usuario),
+        data=usuario_to_read(usuario),
         message="Usuario actualizado"
     )
 
@@ -113,7 +88,7 @@ def asignar_rol(
         return error_response(message=error, status_code=status_code)
 
     return success_response(
-        data=usuario_service.usuario_to_read(usuario),
+        data=usuario_to_read(usuario),
         message="Rol asignado",
         status_code=201
     )

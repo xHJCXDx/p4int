@@ -4,7 +4,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, status, Query
 from sqlmodel import Session
 from app.core.database import get_session
-from app.core.response import success_response, error_response, ApiResponse
+from app.core.response import success_response, paginated_response, error_response, ApiResponse
 from app.core.security import get_current_user
 from app.modules.direcciones.schema import DireccionCreate, DireccionRead, DireccionUpdate
 from app.modules.direcciones.model import DireccionEntrega
@@ -18,20 +18,19 @@ router = APIRouter(prefix="/api/v1/direcciones", tags=["Direcciones"])
 def get_mis_direcciones(
     session: Session = Depends(get_session),
     current_user: Usuario = Depends(get_current_user),
-    limit: int = Query(10, ge=1, le=100),
-    offset: int = Query(0, ge=0)
+    page: int = Query(1, ge=1, description="Número de página"),
+    size: int = Query(10, ge=1, le=100, description="Elementos por página"),
 ) -> ApiResponse:
     """Obtiene todas las direcciones del usuario autenticado."""
-    direcciones, total = service.get_direcciones_by_usuario(session, current_user.id, limit, offset)
+    offset = (page - 1) * size
+    direcciones, total = service.get_direcciones_by_usuario(session, current_user.id, size, offset)
 
-    return success_response(
-        data={
-            "items": [DireccionRead.model_validate(d) for d in direcciones],
-            "total": total,
-            "limit": limit,
-            "offset": offset
-        },
-        message="Direcciones obtenidas"
+    return paginated_response(
+        items=[DireccionRead.model_validate(d) for d in direcciones],
+        total=total,
+        page=page,
+        size=size,
+        message="Direcciones obtenidas",
     )
 
 

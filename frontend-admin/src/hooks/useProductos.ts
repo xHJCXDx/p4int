@@ -6,16 +6,16 @@ import { ProductoFormType } from '../schemas/producto.schema';
 const API_URL = '/productos';
 
 interface FetchProductosParams {
-  limit?: number;
-  offset?: number;
+  page?: number;
+  size?: number;
   categoria_id?: number;
   disponible?: boolean;
   busqueda?: string;
 }
 
 const fetchProductos = async (params: FetchProductosParams = {}): Promise<Producto[]> => {
-  const { limit = 100, offset = 0, ...filters } = params;
-  const queryParams: Record<string, string | number | boolean> = { limit, offset };
+  const { page = 1, size = 100, ...filters } = params;
+  const queryParams: Record<string, string | number | boolean> = { page, size };
   if (filters.categoria_id !== undefined) queryParams.categoria_id = filters.categoria_id;
   if (filters.disponible !== undefined) queryParams.disponible = filters.disponible;
   if (filters.busqueda) queryParams.busqueda = filters.busqueda;

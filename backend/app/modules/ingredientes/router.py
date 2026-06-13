@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, status, Query
 from sqlmodel import Session
 from app.core.database import get_session
-from app.core.response import success_response, error_response, ApiResponse
+from app.core.response import success_response, paginated_response, error_response, ApiResponse
 from app.core.security import require_roles
 from app.modules.ingredientes.schema import IngredienteCreate, IngredienteRead, IngredienteUpdate
 from app.modules.ingredientes import service
@@ -12,19 +12,18 @@ router = APIRouter(prefix="/api/v1/ingredientes", tags=["Ingredientes"])
 @router.get("/")
 def read_ingredientes(
     session: Session = Depends(get_session),
-    limit: int = Query(10, ge=1, le=100),
-    offset: int = Query(0, ge=0)
+    page: int = Query(1, ge=1, description="Número de página"),
+    size: int = Query(10, ge=1, le=100, description="Elementos por página"),
 ) -> ApiResponse:
-    ingredientes, total = service.get_all(session, limit, offset)
+    offset = (page - 1) * size
+    ingredientes, total = service.get_all(session, size, offset)
 
-    return success_response(
-        data={
-            "items": [IngredienteRead.model_validate(i) for i in ingredientes],
-            "total": total,
-            "limit": limit,
-            "offset": offset
-        },
-        message="Ingredientes obtenidos exitosamente"
+    return paginated_response(
+        items=[IngredienteRead.model_validate(i) for i in ingredientes],
+        total=total,
+        page=page,
+        size=size,
+        message="Ingredientes obtenidos exitosamente",
     )
 
 @router.post("/", status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_roles("ADMIN", "STOCK"))])

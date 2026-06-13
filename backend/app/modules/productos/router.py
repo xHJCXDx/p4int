@@ -2,7 +2,7 @@ from typing import Annotated, Optional
 from fastapi import APIRouter, Depends, status, Query
 from sqlmodel import Session
 from app.core.database import get_session
-from app.core.response import success_response, error_response, ApiResponse
+from app.core.response import success_response, paginated_response, error_response, ApiResponse
 from app.core.security import require_roles
 from app.modules.productos.schema import ProductoCreate, ProductoUpdate, DisponibilidadUpdate, ImagenesUpdate, IngredienteEnReceta
 from app.modules.productos import service
@@ -12,28 +12,27 @@ router = APIRouter(prefix="/api/v1/productos", tags=["Productos"])
 @router.get("/")
 def read_productos(
     session: Session = Depends(get_session),
-    limit: Annotated[int, Query(ge=1, le=100, description="Cantidad de productos por página")] = 10,
-    offset: Annotated[int, Query(ge=0, description="Desplazamiento para paginación")] = 0,
+    page: Annotated[int, Query(ge=1, description="Número de página")] = 1,
+    size: Annotated[int, Query(ge=1, le=100, description="Elementos por página")] = 10,
     categoria_id: Annotated[Optional[int], Query(description="Filtrar por categoría")] = None,
     disponible: Annotated[Optional[bool], Query(description="Filtrar por disponibilidad")] = None,
     busqueda: Annotated[Optional[str], Query(description="Buscar por nombre")] = None,
 ) -> ApiResponse:
     """Listado público de productos con filtros: categoría, disponibilidad, búsqueda."""
+    offset = (page - 1) * size
     items, total = service.get_all(
-        session, limit, offset,
+        session, size, offset,
         busqueda=busqueda,
         categoria_id=categoria_id,
         disponible=disponible,
     )
 
-    return success_response(
-        data={
-            "items": items,
-            "total": total,
-            "limit": limit,
-            "offset": offset
-        },
-        message="Productos obtenidos exitosamente"
+    return paginated_response(
+        items=items,
+        total=total,
+        page=page,
+        size=size,
+        message="Productos obtenidos exitosamente",
     )
 
 @router.get("/{producto_id}")

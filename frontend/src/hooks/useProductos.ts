@@ -5,17 +5,17 @@ import { Producto } from '../types/producto';
 const API_URL = '/productos';
 
 interface FetchProductosParams {
-  limit?: number;
-  offset?: number;
+  page?: number;
+  size?: number;
   categoria_id?: number;
   disponible?: boolean;
   busqueda?: string;
 }
 
 const fetchProductos = async (params: FetchProductosParams = {}): Promise<Producto[]> => {
-  const { limit = 100, offset = 0, ...filters } = params;
+  const { page = 1, size = 100, ...filters } = params;
   const response = await apiClient.get<ApiResponse<PaginatedData<Producto>>>(API_URL, {
-    params: { limit, offset, ...filters },
+    params: { page, size, ...filters },
   });
   return response.data.data.items || [];
 };
