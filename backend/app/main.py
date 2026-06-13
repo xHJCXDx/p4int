@@ -20,6 +20,7 @@ from app.modules.catalogo.model import UnidadMedida, FormaPago, EstadoPedido  # 
 from app.modules.pagos.model import Pago  # noqa: F401 — force table registration
 from app.modules.catalogo.router import router as catalogo_router
 from app.modules.uploads.router import router as uploads_router
+from app.modules.estadisticas.router import router as estadisticas_router
 from app.modules.usuarios.seed import seed_roles, seed_users
 from app.modules.catalogo.seed import seed_catalogos
 from app.modules.ingredientes.seed import seed_ingredientes
@@ -67,6 +68,7 @@ app.include_router(pedidos_router)
 app.include_router(pagos_router)
 app.include_router(catalogo_router)
 app.include_router(uploads_router)
+app.include_router(estadisticas_router)
 
 @app.get("/")
 def read_root():
