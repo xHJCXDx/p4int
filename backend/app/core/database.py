@@ -5,14 +5,14 @@ from sqlmodel import SQLModel, create_engine, Session
 # PostgreSQL Configuration
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
-    "postgresql://postgres:postgres@localhost:5432/p4_p2_db"
+    "postgresql://postgres:postgres@localhost:5432/p4int_db"
 )
 
 # Extract database name from URL
 def get_db_name():
     if "postgresql" in DATABASE_URL:
         return DATABASE_URL.split("/")[-1]
-    return "p4_p2_db"
+    return "p4int_db"
 
 def create_database_if_not_exists():
     """Create PostgreSQL database if it doesn't exist."""

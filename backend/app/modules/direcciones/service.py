@@ -42,11 +42,14 @@ def create_direccion(session: Session, usuario_id: int, data: DireccionCreate) -
         nueva_direccion = DireccionEntrega(
             usuario_id=usuario_id,
             alias=data.alias,
-            linea1=data.linea1,
-            linea2=data.linea2,
-            ciudad=data.ciudad,
+            calle=data.calle,
+            numero=data.numero,
+            localidad=data.localidad,
             provincia=data.provincia,
             codigo_postal=data.codigo_postal,
+            piso=data.piso,
+            departamento=data.departamento,
+            referencia=data.referencia,
             latitud=data.latitud,
             longitud=data.longitud,
             es_principal=data.es_principal

@@ -4,7 +4,7 @@ from typing import Optional, List
 from datetime import datetime
 from sqlmodel import Session, select, func
 from app.core.repository import BaseRepository
-from app.modules.usuarios.model import Usuario, Rol, UsuarioRolLink
+from app.modules.usuarios.model import Usuario, Rol, UsuarioRolLink, RefreshToken
 
 
 class UsuarioRepository(BaseRepository[Usuario]):
@@ -73,3 +73,21 @@ class UsuarioRepository(BaseRepository[Usuario]):
         """Soft delete de un usuario."""
         usuario.deleted_at = datetime.utcnow()
         self.session.add(usuario)
+
+    def create_refresh_token(self, refresh_token: RefreshToken) -> RefreshToken:
+        """Persiste un refresh token en la DB."""
+        self.session.add(refresh_token)
+        return refresh_token
+
+    def get_active_refresh_token(self, token_hash: str) -> Optional[RefreshToken]:
+        """Obtiene un refresh token activo (no revocado) por hash."""
+        statement = select(RefreshToken).where(
+            RefreshToken.token_hash == token_hash,
+            RefreshToken.revoked_at.is_(None),
+        )
+        return self.session.exec(statement).first()
+
+    def revoke_refresh_token(self, stored: RefreshToken) -> None:
+        """Revoca un refresh token."""
+        stored.revoked_at = datetime.utcnow()
+        self.session.add(stored)

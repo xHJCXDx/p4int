@@ -1,9 +1,10 @@
 import hashlib
 from typing import Optional
 from datetime import datetime, timedelta
-from sqlmodel import Session, select
+from sqlmodel import Session
 from app.modules.usuarios.model import Usuario, RefreshToken
-from app.modules.usuarios.schema import UsuarioCreate, UsuarioUpdate, UsuarioRead, TokenResponse
+from app.modules.usuarios.schema import UsuarioCreate, UsuarioUpdate, TokenResponse
+from app.modules.usuarios.service import usuario_to_read
 from app.core.security import (
     hash_password, verify_password,
     create_access_token, create_refresh_token, verify_token,
@@ -14,18 +15,6 @@ from app.modules.usuarios.unit_of_work import UsuarioUnitOfWork
 
 def _hash_token(token: str) -> str:
     return hashlib.sha256(token.encode()).hexdigest()
-
-
-def usuario_to_read(usuario: Usuario) -> UsuarioRead:
-    return UsuarioRead(
-        id=usuario.id,
-        nombre=usuario.nombre,
-        apellido=usuario.apellido,
-        email=usuario.email,
-        celular=usuario.celular,
-        roles=[{"codigo": r.codigo, "nombre": r.nombre, "descripcion": r.descripcion} for r in usuario.roles],
-        created_at=usuario.created_at.isoformat()
-    )
 
 
 def register_user(session: Session, user_data: UsuarioCreate) -> Usuario:
@@ -73,13 +62,13 @@ def create_login_tokens(session: Session, user: Usuario) -> TokenResponse:
     )
     refresh = create_refresh_token(data=token_data, roles=user_roles)
 
-    rt = RefreshToken(
-        usuario_id=user.id,
-        token_hash=_hash_token(refresh),
-        expires_at=datetime.utcnow() + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS),
-    )
-    session.add(rt)
-    session.commit()
+    with UsuarioUnitOfWork(session) as uow:
+        rt = RefreshToken(
+            usuario_id=user.id,
+            token_hash=_hash_token(refresh),
+            expires_at=datetime.utcnow() + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS),
+        )
+        uow.usuarios.create_refresh_token(rt)
 
     return TokenResponse(
         access_token=access_token,
@@ -96,37 +85,31 @@ def refresh_from_token(session: Session, refresh_token_str: str) -> TokenRespons
         raise ValueError("Se requiere un refresh token")
 
     token_hash = _hash_token(refresh_token_str)
-    stored = session.exec(
-        select(RefreshToken).where(
-            RefreshToken.token_hash == token_hash,
-            RefreshToken.revoked_at.is_(None),
+
+    with UsuarioUnitOfWork(session) as uow:
+        stored = uow.usuarios.get_active_refresh_token(token_hash)
+        if not stored:
+            raise ValueError("Refresh token revocado o no encontrado")
+
+        uow.usuarios.revoke_refresh_token(stored)
+
+        user_id = payload.get("sub")
+        roles = payload.get("roles", [])
+        token_data = {"sub": str(user_id)}
+
+        access_token = create_access_token(
+            data=token_data,
+            roles=roles,
+            expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
         )
-    ).first()
+        new_refresh = create_refresh_token(data=token_data, roles=roles)
 
-    if not stored:
-        raise ValueError("Refresh token revocado o no encontrado")
-
-    stored.revoked_at = datetime.utcnow()
-    session.add(stored)
-
-    user_id = payload.get("sub")
-    roles = payload.get("roles", [])
-    token_data = {"sub": str(user_id)}
-
-    access_token = create_access_token(
-        data=token_data,
-        roles=roles,
-        expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
-    )
-    new_refresh = create_refresh_token(data=token_data, roles=roles)
-
-    rt = RefreshToken(
-        usuario_id=int(user_id),
-        token_hash=_hash_token(new_refresh),
-        expires_at=datetime.utcnow() + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS),
-    )
-    session.add(rt)
-    session.commit()
+        rt = RefreshToken(
+            usuario_id=int(user_id),
+            token_hash=_hash_token(new_refresh),
+            expires_at=datetime.utcnow() + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS),
+        )
+        uow.usuarios.create_refresh_token(rt)
 
     return TokenResponse(
         access_token=access_token,
@@ -138,16 +121,10 @@ def refresh_from_token(session: Session, refresh_token_str: str) -> TokenRespons
 def revoke_refresh_token(session: Session, refresh_token_str: str) -> None:
     """Revoca un refresh token (logout)."""
     token_hash = _hash_token(refresh_token_str)
-    stored = session.exec(
-        select(RefreshToken).where(
-            RefreshToken.token_hash == token_hash,
-            RefreshToken.revoked_at.is_(None),
-        )
-    ).first()
-    if stored:
-        stored.revoked_at = datetime.utcnow()
-        session.add(stored)
-        session.commit()
+    with UsuarioUnitOfWork(session) as uow:
+        stored = uow.usuarios.get_active_refresh_token(token_hash)
+        if stored:
+            uow.usuarios.revoke_refresh_token(stored)
 
 
 def update_user(session: Session, user: Usuario, update_data: UsuarioUpdate) -> Usuario:

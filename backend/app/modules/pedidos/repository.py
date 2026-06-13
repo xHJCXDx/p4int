@@ -51,12 +51,8 @@ class PedidoRepository(BaseRepository[Pedido]):
             return None
         return pedido
 
-    def create(self, pedido: Pedido) -> Pedido:
-        """Create a new pedido"""
-        return super().create(pedido)
-
     def update(self, db_pedido: Pedido, pedido_data: dict) -> Pedido:
-        """Update a pedido"""
+        """Update a pedido con timestamp automático."""
         pedido_data["updated_at"] = datetime.utcnow()
         return super().update(db_pedido, pedido_data)
 
@@ -72,10 +68,6 @@ class PedidoRepository(BaseRepository[Pedido]):
         self.session.add(db_pedido)
         return db_pedido
 
-    def flush(self) -> None:
-        """Flush without committing"""
-        self.session.flush()
-
 
 class DetallePedidoRepository(BaseRepository[DetallePedido]):
     """Repository for DetallePedido entity (immutable snapshot — RN-04)"""
@@ -88,10 +80,6 @@ class DetallePedidoRepository(BaseRepository[DetallePedido]):
         statement = select(DetallePedido).where(DetallePedido.pedido_id == pedido_id)
         return self.session.exec(statement).all()
 
-    def create(self, detalle: DetallePedido) -> DetallePedido:
-        """Create a new detalle pedido (snapshot inmutable)"""
-        return super().create(detalle)
-
     def update(self, *args, **kwargs):
         """RN-04: DetallePedido es un snapshot inmutable, no se permite modificar."""
         raise NotImplementedError("DetallePedido es inmutable (RN-04): no se permite UPDATE")
@@ -99,10 +87,6 @@ class DetallePedidoRepository(BaseRepository[DetallePedido]):
     def delete(self, *args, **kwargs):
         """RN-04: DetallePedido es un snapshot inmutable, no se permite eliminar."""
         raise NotImplementedError("DetallePedido es inmutable (RN-04): no se permite DELETE")
-
-    def flush(self) -> None:
-        """Flush without committing"""
-        self.session.flush()
 
 
 class HistorialEstadoPedidoRepository(BaseRepository[HistorialEstadoPedido]):
@@ -116,10 +100,6 @@ class HistorialEstadoPedidoRepository(BaseRepository[HistorialEstadoPedido]):
         statement = select(HistorialEstadoPedido).where(HistorialEstadoPedido.pedido_id == pedido_id)
         return self.session.exec(statement).all()
 
-    def create(self, historial: HistorialEstadoPedido) -> HistorialEstadoPedido:
-        """Create a new historial entry (append-only)"""
-        return super().create(historial)
-
     def update(self, *args, **kwargs):
         """RN-03: El historial es append-only, no se permite modificar registros."""
         raise NotImplementedError("HistorialEstadoPedido es append-only (RN-03): no se permite UPDATE")
@@ -127,7 +107,3 @@ class HistorialEstadoPedidoRepository(BaseRepository[HistorialEstadoPedido]):
     def delete(self, *args, **kwargs):
         """RN-03: El historial es append-only, no se permite eliminar registros."""
         raise NotImplementedError("HistorialEstadoPedido es append-only (RN-03): no se permite DELETE")
-
-    def flush(self) -> None:
-        """Flush without committing"""
-        self.session.flush()

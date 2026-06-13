@@ -11,6 +11,7 @@ from app.modules.usuarios.schema import (
 )
 from app.modules.usuarios.model import Usuario
 from app.modules.auth import service
+from app.modules.usuarios.service import usuario_to_read
 
 router = APIRouter(prefix="/api/v1/auth", tags=["Autenticación"])
 
@@ -25,7 +26,7 @@ def register(
     try:
         new_user = service.register_user(session, user_data)
         return success_response(
-            data=service.usuario_to_read(new_user),
+            data=usuario_to_read(new_user),
             message="Usuario registrado exitosamente",
             status_code=201
         )
@@ -52,7 +53,7 @@ def login(
 
     return success_response(
         data={
-            "user": service.usuario_to_read(user).model_dump(),
+            "user": usuario_to_read(user).model_dump(),
             "tokens": tokens.model_dump(),
         },
         message="Autenticación exitosa",
@@ -62,7 +63,7 @@ def login(
 @router.get("/me")
 def get_me(current_user: Usuario = Depends(get_current_user)) -> ApiResponse:
     return success_response(
-        data=service.usuario_to_read(current_user),
+        data=usuario_to_read(current_user),
         message="Datos del usuario obtenidos"
     )
 
@@ -76,7 +77,7 @@ def update_me(
     try:
         updated_user = service.update_user(session, current_user, update_data)
         return success_response(
-            data=service.usuario_to_read(updated_user),
+            data=usuario_to_read(updated_user),
             message="Perfil actualizado exitosamente"
         )
     except ValueError as e:

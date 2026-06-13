@@ -30,15 +30,7 @@ class PagoRepository(BaseRepository[Pago]):
         """Get pago by ID"""
         return self.session.get(Pago, pago_id)
 
-    def create(self, pago: Pago) -> Pago:
-        """Create a new pago"""
-        return super().create(pago)
-
     def update(self, db_pago: Pago, pago_data: dict) -> Pago:
-        """Update a pago"""
+        """Update a pago con timestamp automático."""
         pago_data["updated_at"] = datetime.utcnow()
         return super().update(db_pago, pago_data)
-
-    def flush(self) -> None:
-        """Flush without committing"""
-        self.session.flush()
