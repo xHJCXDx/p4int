@@ -4,6 +4,7 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import { ToastProvider } from './components/Toast';
 import { ConfirmProvider } from './components/ConfirmDialog';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { useWebSocket } from './hooks/useWebSocket';
 
 // Store pages
 import HomeStorePage from './pages/store/HomeStorePage';
@@ -81,12 +82,18 @@ function AppRoutes() {
   );
 }
 
+function WebSocketInit() {
+  useWebSocket();
+  return null;
+}
+
 function App() {
   return (
     <Router>
       <ErrorBoundary>
         <ToastProvider>
           <ConfirmProvider>
+            <WebSocketInit />
             <div className="min-h-screen bg-gray-50">
               <Navbar />
               <AppRoutes />
