@@ -1,4 +1,5 @@
 import { usePedidos, useTransitionEstado } from '../../hooks/usePedidos';
+import { useFormasPago, useEstadosPedido } from '../../hooks/useCatalogo';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useToast } from '../../components/Toast';
 import { getApiErrorMessage } from '../../api/axios';
@@ -7,12 +8,20 @@ import { DetalleInPedido } from '../../types/pedido';
 export default function CajeroPage() {
   const { data: pedidos = [], isLoading } = usePedidos();
   const { mutate: transitionEstado } = useTransitionEstado();
+  const { data: formasPago = [] } = useFormasPago();
+  const { data: estadosPedido = [] } = useEstadosPedido();
   const { usuario } = useAuthStore();
 
   const { showToast } = useToast();
   const isAdmin = usuario?.roles.some((r) => r.codigo === 'ADMIN') ?? false;
   const isPedidos = usuario?.roles.some((r) => r.codigo === 'PEDIDOS') ?? false;
   const canManageOrders = isAdmin || isPedidos;
+
+  const getEstadoDescripcion = (codigo: string) =>
+    estadosPedido.find((e) => e.codigo === codigo)?.descripcion || codigo;
+
+  const getFormaPagoDescripcion = (codigo: string) =>
+    formasPago.find((f) => f.codigo === codigo)?.descripcion || codigo;
 
   // Filtrar solo pedidos activos (no entregados ni cancelados)
   const pedidosActivos = pedidos.filter(
@@ -114,7 +123,7 @@ export default function CajeroPage() {
                     </p>
                   </div>
                   <span className={`px-4 py-2 rounded-full text-sm font-medium ${getEstadoColor(pedido.estado_codigo)}`}>
-                    {pedido.estado_codigo}
+                    {getEstadoDescripcion(pedido.estado_codigo)}
                   </span>
                 </div>
 
@@ -126,7 +135,7 @@ export default function CajeroPage() {
                   </div>
                   <div>
                     <p className="text-sm text-gray-600">Forma de pago:</p>
-                    <p className="text-gray-900 font-medium">{pedido.forma_pago_codigo}</p>
+                    <p className="text-gray-900 font-medium">{getFormaPagoDescripcion(pedido.forma_pago_codigo)}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-600">Productos:</p>

@@ -1,8 +1,17 @@
 import { usePedidos } from '../../hooks/usePedidos';
+import { useFormasPago, useEstadosPedido } from '../../hooks/useCatalogo';
 import { DetalleInPedido } from '../../types/pedido';
 
 export default function MisPedidosPage() {
   const { data: pedidos = [], isLoading } = usePedidos();
+  const { data: formasPago = [] } = useFormasPago();
+  const { data: estadosPedido = [] } = useEstadosPedido();
+
+  const getEstadoDescripcion = (codigo: string) =>
+    estadosPedido.find((e) => e.codigo === codigo)?.descripcion || codigo;
+
+  const getFormaPagoDescripcion = (codigo: string) =>
+    formasPago.find((f) => f.codigo === codigo)?.descripcion || codigo;
 
   if (isLoading) {
     return (
@@ -54,7 +63,7 @@ export default function MisPedidosPage() {
                     </p>
                   </div>
                   <span className={`px-3 py-1 rounded-full text-sm font-medium ${getEstadoColor(pedido.estado_codigo)}`}>
-                    {pedido.estado_codigo}
+                    {getEstadoDescripcion(pedido.estado_codigo)}
                   </span>
                 </div>
 
@@ -79,7 +88,7 @@ export default function MisPedidosPage() {
                   </div>
                   <div className="text-right">
                     <p className="text-sm text-gray-600">Forma de pago:</p>
-                    <p className="text-gray-900 font-medium">{pedido.forma_pago_codigo}</p>
+                    <p className="text-gray-900 font-medium">{getFormaPagoDescripcion(pedido.forma_pago_codigo)}</p>
                   </div>
                 </div>
               </div>

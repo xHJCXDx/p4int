@@ -3,9 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { useDirecciones } from '../../hooks/useDirecciones';
 import { useCreatePedido } from '../../hooks/usePedidos';
 import { useCarritoStore } from '../../store/useCarritoStore';
+import { useFormasPago } from '../../hooks/useCatalogo';
 import { useToast } from '../../components/Toast';
+import { getApiErrorMessage } from '../../api/axios';
 import { DireccionEntrega } from '../../types/direccion';
-import { AxiosError } from 'axios';
 
 export default function CheckoutPage() {
   const navigate = useNavigate();
@@ -13,8 +14,9 @@ export default function CheckoutPage() {
   const { data: direcciones = [] } = useDirecciones();
   const { mutate: crearPedido, isPending } = useCreatePedido();
 
+  const { data: formasPago = [] } = useFormasPago();
   const [selectedDireccionId, setSelectedDireccionId] = useState<number | null>(null);
-  const [formaPago, setFormaPago] = useState('EFECTIVO');
+  const [formaPago, setFormaPago] = useState('');
   const { showToast } = useToast();
 
   useEffect(() => {
@@ -23,6 +25,13 @@ export default function CheckoutPage() {
       setSelectedDireccionId(principal?.id ?? direcciones[0].id);
     }
   }, [direcciones]);
+
+  useEffect(() => {
+    if (formasPago.length > 0 && !formaPago) {
+      const habilitada = formasPago.find((f) => f.habilitado);
+      if (habilitada) setFormaPago(habilitada.codigo);
+    }
+  }, [formasPago]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,11 +57,7 @@ export default function CheckoutPage() {
           navigate('/store/mis-pedidos');
         },
         onError: (error: Error) => {
-          const axiosError = error as AxiosError<{ message?: string; detail?: string }>;
-          const msg = axiosError.response?.data?.message
-            || axiosError.response?.data?.detail
-            || 'No se pudo crear el pedido';
-          showToast(msg, 'error');
+          showToast(getApiErrorMessage(error, 'No se pudo crear el pedido'), 'error');
         },
       }
     );
@@ -129,16 +134,16 @@ export default function CheckoutPage() {
           <div className="bg-white rounded-lg shadow-md p-6 mb-6">
             <h2 className="text-xl font-semibold text-gray-900 mb-4">Forma de pago</h2>
             <div className="space-y-3">
-              {['EFECTIVO', 'MERCADOPAGO', 'TRANSFERENCIA'].map((forma) => (
-                <label key={forma} className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50">
+              {formasPago.filter((f) => f.habilitado).map((forma) => (
+                <label key={forma.codigo} className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50">
                   <input
                     type="radio"
                     name="forma_pago"
-                    value={forma}
-                    checked={formaPago === forma}
+                    value={forma.codigo}
+                    checked={formaPago === forma.codigo}
                     onChange={(e) => setFormaPago(e.target.value)}
                   />
-                  <span className="text-gray-900 font-medium">{forma}</span>
+                  <span className="text-gray-900 font-medium">{forma.descripcion}</span>
                 </label>
               ))}
             </div>
