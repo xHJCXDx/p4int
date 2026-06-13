@@ -5,6 +5,7 @@ import { ingredienteFormSchema } from '../schemas/ingrediente.schema';
 import { useUnidadesMedida, useCreateUnidadMedida, useDeleteUnidadMedida } from '../hooks/useIngredientes';
 import { useConfirm } from './ConfirmDialog';
 import { useToast } from './Toast';
+import { getApiErrorMessage } from '../api/axios';
 
 interface IngredienteFormSimpleProps {
   onSubmit: (data: Omit<Ingrediente, 'id' | 'created_at' | 'updated_at'>) => Promise<void>;
@@ -55,8 +56,8 @@ export function IngredienteFormSimple({
       setShowNewUnidad(false);
       setNewCodigo('');
       setNewNombre('');
-    } catch (err: any) {
-      setUnidadError(err.response?.data?.message || 'Error al crear unidad');
+    } catch (err: unknown) {
+      setUnidadError(getApiErrorMessage(err, 'Error al crear unidad'));
     }
   };
 
@@ -159,7 +160,7 @@ export function IngredienteFormSimple({
                         field.handleChange('u');
                         showToast('Unidad eliminada', 'success');
                       },
-                      onError: (err: any) => showToast(err.response?.data?.message || 'No se pudo eliminar la unidad', 'error'),
+                      onError: (err: Error) => showToast(getApiErrorMessage(err, 'No se pudo eliminar la unidad'), 'error'),
                     });
                   }}
                   className="px-3 py-2 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg text-sm font-medium transition-colors"

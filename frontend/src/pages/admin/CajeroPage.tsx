@@ -1,6 +1,8 @@
 import { usePedidos, useTransitionEstado } from '../../hooks/usePedidos';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useToast } from '../../components/Toast';
+import { getApiErrorMessage } from '../../api/axios';
+import { DetalleInPedido } from '../../types/pedido';
 
 export default function CajeroPage() {
   const { data: pedidos = [], isLoading } = usePedidos();
@@ -14,7 +16,7 @@ export default function CajeroPage() {
 
   // Filtrar solo pedidos activos (no entregados ni cancelados)
   const pedidosActivos = pedidos.filter(
-    (p: any) =>
+    (p) =>
       p.estado_codigo !== 'ENTREGADO' && p.estado_codigo !== 'CANCELADO'
   );
 
@@ -25,8 +27,8 @@ export default function CajeroPage() {
         onSuccess: () => {
           showToast('Estado actualizado', 'success');
         },
-        onError: (error: any) => {
-          showToast(error.response?.data?.detail || 'No se pudo actualizar el estado', 'error');
+        onError: (error) => {
+          showToast(getApiErrorMessage(error, 'No se pudo actualizar el estado'), 'error');
         },
       }
     );
@@ -102,7 +104,7 @@ export default function CajeroPage() {
           </div>
         ) : (
           <div className="space-y-4">
-            {pedidosActivos.map((pedido: any) => (
+            {pedidosActivos.map((pedido) => (
               <div key={pedido.id} className="bg-white rounded-lg shadow-md p-6">
                 <div className="flex justify-between items-start mb-4">
                   <div>
@@ -139,7 +141,7 @@ export default function CajeroPage() {
                   <div className="mb-4 pb-4 border-b">
                     <p className="text-sm font-medium text-gray-700 mb-2">Productos:</p>
                     <ul className="space-y-1">
-                      {pedido.detalles.map((det: any, idx: number) => (
+                      {pedido.detalles.map((det: DetalleInPedido, idx: number) => (
                         <li key={idx} className="text-sm text-gray-600 flex justify-between">
                           <span>{det.nombre_snapshot} x {det.cantidad}</span>
                           <span className="font-medium">${det.subtotal_snap?.toFixed(2)}</span>

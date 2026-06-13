@@ -1,5 +1,29 @@
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
 import { useAuthStore } from '../store/useAuthStore';
+
+/** Shape of every backend response via success_response / error_response */
+export interface ApiResponse<T = unknown> {
+  success: boolean;
+  data: T;
+  message: string;
+  status_code: number;
+}
+
+/** Paginated list wrapper */
+export interface PaginatedData<T> {
+  items: T[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+/** Extract error message from an AxiosError with backend shape */
+export function getApiErrorMessage(error: unknown, fallback = 'Error inesperado'): string {
+  const axiosErr = error as AxiosError<{ message?: string; detail?: string }>;
+  return axiosErr.response?.data?.message
+    || axiosErr.response?.data?.detail
+    || fallback;
+}
 
 const apiClient = axios.create({
   baseURL: '/api/v1',

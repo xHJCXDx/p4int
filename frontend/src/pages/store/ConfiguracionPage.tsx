@@ -8,6 +8,7 @@ import {
   useSetAsPrincipal,
 } from '../../hooks/useDirecciones';
 import { DireccionEntrega } from '../../types/direccion';
+import { getApiErrorMessage } from '../../api/axios';
 
 type Tab = 'perfil' | 'direcciones' | 'password';
 
@@ -65,8 +66,8 @@ function PerfilSection() {
       { nombre, apellido, celular: celular || null },
       {
         onSuccess: () => setMsg('Perfil actualizado correctamente'),
-        onError: (err: any) =>
-          setError(err.message || 'Error al actualizar perfil'),
+        onError: (err: Error) =>
+          setError(getApiErrorMessage(err, 'Error al actualizar perfil')),
       }
     );
   };
@@ -206,7 +207,7 @@ function DireccionesSection() {
             setMsg('Direccion actualizada');
             resetForm();
           },
-          onError: (err: any) => setError(err.message || 'Error al actualizar'),
+          onError: (err: Error) => setError(getApiErrorMessage(err, 'Error al actualizar')),
         }
       );
     } else {
@@ -215,7 +216,7 @@ function DireccionesSection() {
           setMsg('Direccion creada');
           resetForm();
         },
-        onError: (err: any) => setError(err.message || 'Error al crear'),
+        onError: (err: Error) => setError(getApiErrorMessage(err, 'Error al crear')),
       });
     }
   };
@@ -417,8 +418,8 @@ function PasswordSection() {
           setNewPassword('');
           setConfirmPassword('');
         },
-        onError: (err: any) =>
-          setError(err.message || 'Error al cambiar contraseña'),
+        onError: (err: Error) =>
+          setError(getApiErrorMessage(err, 'Error al cambiar contraseña')),
       }
     );
   };

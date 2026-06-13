@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLogin, useRegister } from '../../hooks/useAuth';
+import { getApiErrorMessage } from '../../api/axios';
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -30,8 +31,8 @@ export default function LoginPage() {
         onSuccess: () => {
           navigate('/store/home');
         },
-        onError: (err: any) => {
-          setError(err.response?.data?.message || err.message || 'Credenciales invalidas');
+        onError: (err: Error) => {
+          setError(getApiErrorMessage(err, 'Credenciales invalidas'));
         },
       }
     );
@@ -57,8 +58,8 @@ export default function LoginPage() {
           setApellido('');
           setPassword('');
         },
-        onError: (err: any) => {
-          setError(err.response?.data?.message || err.message || 'Error al registrarse');
+        onError: (err: Error) => {
+          setError(getApiErrorMessage(err, 'Error al registrarse'));
         },
       }
     );

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ProductoTable } from '../components/ProductoTable';
 import ProductoModal from '../components/ProductoModal';
 import { Producto } from '../types/producto';
+import { ProductoFormType } from '../schemas/producto.schema';
 import { useAuthStore } from '../store/useAuthStore';
 import {
   useProductos,
@@ -26,7 +27,7 @@ function ProductsPage() {
   const confirm = useConfirm();
   const { showToast } = useToast();
 
-  const handleCreate = async (data: Omit<Producto, 'id'>) => {
+  const handleCreate = async (data: ProductoFormType) => {
     try {
       await createMutation.mutateAsync(data);
       showToast('Producto creado', 'success');
@@ -36,7 +37,7 @@ function ProductsPage() {
     }
   };
 
-  const handleUpdate = async (data: Omit<Producto, 'id'>) => {
+  const handleUpdate = async (data: ProductoFormType) => {
     if (!selectedProducto || !selectedProducto.id) return;
     try {
       await updateMutation.mutateAsync({
@@ -71,7 +72,7 @@ function ProductsPage() {
     setIsModalOpen(true);
   };
 
-  const handleSubmit = (data: Omit<Producto, 'id'>) => {
+  const handleSubmit = (data: ProductoFormType) => {
     if (selectedProducto) {
       handleUpdate(data);
     } else {

@@ -4,6 +4,8 @@ import { useCategorias } from '../../hooks/useCategorias';
 import { useProductos } from '../../hooks/useProductos';
 import { useCarritoStore } from '../../store/useCarritoStore';
 import { useToast } from '../../components/Toast';
+import { Producto, CategoriaInProducto, IngredienteInProducto } from '../../types/producto';
+import { Categoria } from '../../types/categoria';
 
 export default function HomeStorePage() {
   const [selectedCategoriaId, setSelectedCategoriaId] = useState<number | undefined>(undefined);
@@ -18,7 +20,7 @@ export default function HomeStorePage() {
   const addItem = useCarritoStore((state) => state.addItem);
   const { showToast } = useToast();
 
-  const handleAddToCarrito = (producto: any) => {
+  const handleAddToCarrito = (producto: Producto) => {
     addItem({
       producto_id: producto.id,
       nombre: producto.nombre,
@@ -59,7 +61,7 @@ export default function HomeStorePage() {
             >
               Todas
             </button>
-            {categorias.map((cat: any) => (
+            {categorias.map((cat: Categoria) => (
               <button
                 key={cat.id}
                 onClick={() => setSelectedCategoriaId(cat.id)}
@@ -77,7 +79,7 @@ export default function HomeStorePage() {
 
         {/* Grilla de productos */}
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {productos.map((producto: any) => (
+          {productos.map((producto) => (
             <div key={producto.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
               {producto.imagenes_url?.[0] && (
                 <img src={producto.imagenes_url[0]} alt={producto.nombre} className="w-full h-48 object-cover" />
@@ -87,7 +89,7 @@ export default function HomeStorePage() {
 
                 {producto.categorias?.length > 0 && (
                   <div className="flex flex-wrap gap-1 mb-2">
-                    {producto.categorias.map((cat: any) => (
+                    {producto.categorias.map((cat: CategoriaInProducto) => (
                       <span key={cat.id} className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
                         {cat.nombre}
                       </span>
@@ -103,7 +105,7 @@ export default function HomeStorePage() {
                   <div className="mb-3">
                     <p className="text-xs text-gray-500 font-semibold mb-1">Ingredientes:</p>
                     <div className="flex flex-wrap gap-1">
-                      {producto.ingredientes.map((ing: any) => (
+                      {producto.ingredientes.map((ing: IngredienteInProducto) => (
                         <span
                           key={ing.id}
                           className={`text-xs px-2 py-0.5 rounded-full ${

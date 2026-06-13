@@ -1,14 +1,14 @@
 import { useEffect } from 'react';
 import { useForm } from '@tanstack/react-form';
 import { Producto, IngredienteEnReceta } from '../types/producto';
-import { productoFormSchema } from '../schemas/producto.schema';
+import { productoFormSchema, ProductoFormType } from '../schemas/producto.schema';
 import { useCategorias } from '../hooks/useCategorias';
 import { useIngredientes } from '../hooks/useIngredientes';
 
 interface Props {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (producto: any) => void;
+  onSubmit: (producto: ProductoFormType) => void;
   productoInitial?: Producto | null;
 }
 

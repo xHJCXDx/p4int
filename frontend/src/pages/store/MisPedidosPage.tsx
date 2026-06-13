@@ -1,4 +1,5 @@
 import { usePedidos } from '../../hooks/usePedidos';
+import { DetalleInPedido } from '../../types/pedido';
 
 export default function MisPedidosPage() {
   const { data: pedidos = [], isLoading } = usePedidos();
@@ -43,7 +44,7 @@ export default function MisPedidosPage() {
           </div>
         ) : (
           <div className="space-y-4">
-            {pedidos.map((pedido: any) => (
+            {pedidos.map((pedido) => (
               <div key={pedido.id} className="bg-white rounded-lg shadow-md p-6">
                 <div className="flex justify-between items-start mb-4">
                   <div>
@@ -61,7 +62,7 @@ export default function MisPedidosPage() {
                   <div className="mb-4 pb-4 border-b">
                     <p className="text-sm font-medium text-gray-700 mb-2">Productos:</p>
                     <ul className="space-y-1">
-                      {pedido.detalles.map((det: any, idx: number) => (
+                      {pedido.detalles.map((det: DetalleInPedido, idx: number) => (
                         <li key={idx} className="text-sm text-gray-600 flex justify-between">
                           <span>{det.nombre_snapshot} x {det.cantidad}</span>
                           <span className="font-medium">${det.subtotal_snap?.toFixed(2)}</span>

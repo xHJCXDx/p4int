@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLogin } from '../../hooks/useAuth';
+import { getApiErrorMessage } from '../../api/axios';
+import { Usuario } from '../../store/useAuthStore';
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -22,11 +24,10 @@ export default function LoginPage() {
     login(
       { email, password },
       {
-        onSuccess: (user: any) => {
-          const roles = user.roles || [];
-          const isAdmin = roles.some((r: any) => r.codigo === 'ADMIN');
-          const isPedidos = roles.some((r: any) => r.codigo === 'PEDIDOS');
-          const isStock = roles.some((r: any) => r.codigo === 'STOCK');
+        onSuccess: (user: Usuario) => {
+          const isAdmin = user.roles.some((r) => r.codigo === 'ADMIN');
+          const isPedidos = user.roles.some((r) => r.codigo === 'PEDIDOS');
+          const isStock = user.roles.some((r) => r.codigo === 'STOCK');
 
           if (isAdmin || isPedidos) {
             navigate('/pedidos');
@@ -36,8 +37,8 @@ export default function LoginPage() {
             setError('No tienes permisos de administracion');
           }
         },
-        onError: (err: any) => {
-          setError(err.response?.data?.message || err.message || 'Credenciales invalidas');
+        onError: (err: Error) => {
+          setError(getApiErrorMessage(err, 'Credenciales invalidas'));
         },
       }
     );

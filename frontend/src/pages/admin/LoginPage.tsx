@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLogin } from '../../hooks/useAuth';
+import { getApiErrorMessage } from '../../api/axios';
+import { Usuario } from '../../store/useAuthStore';
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -21,17 +23,16 @@ export default function LoginPage() {
     login(
       { email, password },
       {
-        onSuccess: (user: any) => {
-          const roles = user.roles || [];
-          const hasAdminRole = roles.some((r: any) => ['ADMIN', 'PEDIDOS', 'STOCK'].includes(r.codigo));
+        onSuccess: (user: Usuario) => {
+          const hasAdminRole = user.roles.some((r) => ['ADMIN', 'PEDIDOS', 'STOCK'].includes(r.codigo));
           if (hasAdminRole) {
             navigate('/admin');
           } else {
             navigate('/store/home');
           }
         },
-        onError: (err: any) => {
-          setError(err.response?.data?.message || err.message || 'Credenciales inválidas');
+        onError: (err: Error) => {
+          setError(getApiErrorMessage(err, 'Credenciales inválidas'));
         },
       }
     );
