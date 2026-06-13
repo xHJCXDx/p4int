@@ -50,11 +50,7 @@ export function PedidoFormSimple({
 
     if (!validateForm()) return;
 
-    try {
-      await onSubmit(formData);
-    } catch (error) {
-      console.error('Error submitting form:', error);
-    }
+    await onSubmit(formData);
   };
 
   const handleNumberChange = (field: string, value: string) => {

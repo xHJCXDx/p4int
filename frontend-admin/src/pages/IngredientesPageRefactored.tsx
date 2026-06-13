@@ -15,8 +15,6 @@ import { useAuthStore } from '../store/useAuthStore';
 function IngredientesPageRefactored() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedIngrediente, setSelectedIngrediente] = useState<Ingrediente | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
 
   const { usuario } = useAuthStore();
   const isAdmin = usuario?.roles.some((r) => r.codigo === 'ADMIN') ?? false;
@@ -42,8 +40,7 @@ function IngredientesPageRefactored() {
       }
       setIsModalOpen(false);
       setSelectedIngrediente(null);
-    } catch (err) {
-      console.error('Error:', err);
+    } catch {
       showToast(`Error al ${selectedIngrediente ? 'actualizar' : 'crear'} el ingrediente`, 'error');
     }
   };
@@ -55,8 +52,7 @@ function IngredientesPageRefactored() {
     try {
       await deleteMutation.mutateAsync(id);
       showToast('Ingrediente eliminado', 'success');
-    } catch (err) {
-      console.error('Error deleting:', err);
+    } catch {
       showToast('Error al eliminar el ingrediente', 'error');
     }
   };
@@ -73,25 +69,6 @@ function IngredientesPageRefactored() {
 
   return (
     <main className="container mx-auto px-4 py-8">
-      {error && (
-        <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg flex justify-between items-center">
-          <span>{error}</span>
-          <button onClick={() => setError(null)} className="text-red-700 hover:text-red-900">
-            ✕
-          </button>
-        </div>
-      )}
-
-      {successMessage && (
-        <div className="mb-4 p-4 bg-green-100 border border-green-400 text-green-700 rounded-lg flex justify-between items-center">
-          <span>{successMessage}</span>
-          <button onClick={() => setSuccessMessage(null)} className="text-green-700 hover:text-green-900">
-            ✕
-          </button>
-        </div>
-      )}
-
-      {/* Header */}
       <div className="flex justify-between items-center mb-8">
         <h2 className="text-3xl font-bold text-gray-800">Ingredientes</h2>
         {isAdmin && (
@@ -104,7 +81,6 @@ function IngredientesPageRefactored() {
         )}
       </div>
 
-      {/* Tabla */}
       <IngredienteTable
         data={ingredientes}
         onEdit={isAdmin ? openEditModal : () => {}}
@@ -113,7 +89,6 @@ function IngredientesPageRefactored() {
         isAdmin={isAdmin}
       />
 
-      {/* Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-2xl w-full lg:w-[80vw] lg:max-w-[80vw] max-h-[90vh] overflow-y-auto">

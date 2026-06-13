@@ -14,21 +14,21 @@ import { useToast } from '../components/Toast';
 function CategoriasPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedCategoria, setSelectedCategoria] = useState<Categoria | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
 
   const { data: categorias = [], isLoading } = useCategorias();
   const createMutation = useCreateCategoria();
   const updateMutation = useUpdateCategoria();
   const deleteMutation = useDeleteCategoria();
+  const confirm = useConfirm();
+  const { showToast } = useToast();
 
   const handleCreate = async (nueva: Categoria) => {
     try {
       await createMutation.mutateAsync(nueva);
+      showToast('Categoria creada', 'success');
       setIsModalOpen(false);
-    } catch (err) {
-      console.error('Error creating categoria:', err);
-      setError('Error al crear la categoría');
+    } catch {
+      showToast('Error al crear la categoria', 'error');
     }
   };
 
@@ -39,15 +39,12 @@ function CategoriasPage() {
         id: selectedCategoria.id,
         data: actualizada,
       });
+      showToast('Categoria actualizada', 'success');
       setIsModalOpen(false);
-    } catch (err) {
-      console.error('Error updating categoria:', err);
-      setError('Error al actualizar la categoría');
+    } catch {
+      showToast('Error al actualizar la categoria', 'error');
     }
   };
-
-  const confirm = useConfirm();
-  const { showToast } = useToast();
 
   const handleDelete = async (id: number) => {
     const ok = await confirm({ message: '¿Estas seguro de eliminar esta categoria?' });
@@ -55,8 +52,7 @@ function CategoriasPage() {
     try {
       await deleteMutation.mutateAsync(id);
       showToast('Categoria eliminada', 'success');
-    } catch (err) {
-      console.error('Error deleting categoria:', err);
+    } catch {
       showToast('Error al eliminar la categoria', 'error');
     }
   };
@@ -81,19 +77,13 @@ function CategoriasPage() {
 
   return (
     <main className="container mx-auto px-4 py-8">
-      {error && (
-        <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
-          {error}
-        </div>
-      )}
-
       <div className="flex justify-between items-center mb-8">
-        <h2 className="text-3xl font-bold text-gray-800">Categorías</h2>
+        <h2 className="text-3xl font-bold text-gray-800">Categorias</h2>
         <button
           onClick={openCreateModal}
           className="bg-gray-800 hover:bg-gray-700 text-white font-bold py-2 px-6 rounded-lg transition-colors shadow-lg"
         >
-          + Nueva Categoría
+          + Nueva Categoria
         </button>
       </div>
 

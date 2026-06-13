@@ -15,7 +15,6 @@ import { useToast } from '../components/Toast';
 function ProductsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedProducto, setSelectedProducto] = useState<Producto | null>(null);
-  const [error, setError] = useState<string | null>(null);
 
   const { usuario } = useAuthStore();
   const isAdmin = usuario?.roles.some((r) => r.codigo === 'ADMIN') ?? false;
@@ -24,14 +23,16 @@ function ProductsPage() {
   const createMutation = useCreateProducto();
   const updateMutation = useUpdateProducto();
   const deleteMutation = useDeleteProducto();
+  const confirm = useConfirm();
+  const { showToast } = useToast();
 
   const handleCreate = async (data: Omit<Producto, 'id'>) => {
     try {
       await createMutation.mutateAsync(data);
+      showToast('Producto creado', 'success');
       setIsModalOpen(false);
-    } catch (err) {
-      console.error('Error creating producto:', err);
-      setError('Error al crear el producto');
+    } catch {
+      showToast('Error al crear el producto', 'error');
     }
   };
 
@@ -42,15 +43,12 @@ function ProductsPage() {
         id: selectedProducto.id,
         data: data,
       });
+      showToast('Producto actualizado', 'success');
       setIsModalOpen(false);
-    } catch (err) {
-      console.error('Error updating producto:', err);
-      setError('Error al actualizar el producto');
+    } catch {
+      showToast('Error al actualizar el producto', 'error');
     }
   };
-
-  const confirm = useConfirm();
-  const { showToast } = useToast();
 
   const handleDelete = async (id: number) => {
     const ok = await confirm({ message: '¿Estas seguro de eliminar este producto?' });
@@ -58,8 +56,7 @@ function ProductsPage() {
     try {
       await deleteMutation.mutateAsync(id);
       showToast('Producto eliminado', 'success');
-    } catch (err) {
-      console.error('Error deleting producto:', err);
+    } catch {
       showToast('Error al eliminar el producto', 'error');
     }
   };
@@ -84,12 +81,6 @@ function ProductsPage() {
 
   return (
     <main className="container mx-auto px-4 py-8">
-      {error && (
-        <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
-          {error}
-        </div>
-      )}
-
       <div className="flex justify-between items-center mb-8">
         <h2 className="text-3xl font-bold text-gray-800">Productos</h2>
         {isAdmin ? (
