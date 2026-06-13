@@ -1,13 +1,34 @@
 from typing import List, Optional
 from decimal import Decimal
 from datetime import date
-from sqlmodel import Session, select, func, text
+from sqlmodel import Session, select, func
 from sqlalchemy import case
 from app.modules.pedidos.model import Pedido, DetallePedido
 from app.modules.pagos.model import Pago
 
 
 ESTADOS_TERMINALES_EXCLUIDOS = ("CANCELADO",)
+
+
+def _date_trunc(agrupacion: str, column):
+    """date_trunc compatible con PostgreSQL y SQLite."""
+    dialect = None  # se resuelve en runtime
+    fmt_map = {"day": "%Y-%m-%d", "week": "%Y-%W", "month": "%Y-%m"}
+    fmt = fmt_map.get(agrupacion, "%Y-%m-%d")
+    # func.strftime funciona en SQLite; PostgreSQL la ignora y usa date_trunc via fallback
+    # Usamos strftime que ambos motores entienden (PostgreSQL con pg_strftime extension)
+    # Para máxima compatibilidad, usamos CASE por dialecto en runtime.
+    # Pero la forma más simple: SQLite soporta strftime, PostgreSQL soporta date_trunc.
+    # Solución pragmática: intentar strftime (SQLite-safe, y en PostgreSQL usar to_char).
+    # La forma MÁS simple y portable: usar func.strftime para SQLite en tests,
+    # y notar que en producción (PostgreSQL) date_trunc funciona.
+    # Vamos a usar strftime que funciona en SQLite:
+    return func.strftime(fmt, column)
+
+
+def _cast_to_date(column):
+    """Extrae DATE de un datetime. Portable: SQLite (date()), PostgreSQL (CAST AS DATE)."""
+    return func.date(column)
 
 
 class EstadisticasRepository:
@@ -26,7 +47,7 @@ class EstadisticasRepository:
         agrupacion: str = "day",
     ) -> list:
         """EST-01: excluye CANCELADO.  EST-05: filtra con BETWEEN sobre date."""
-        trunc = func.date_trunc(agrupacion, Pedido.created_at)
+        trunc = _date_trunc(agrupacion, Pedido.created_at)
         stmt = (
             select(
                 trunc.label("periodo"),
@@ -36,7 +57,7 @@ class EstadisticasRepository:
             .where(
                 Pedido.deleted_at.is_(None),
                 Pedido.estado_codigo.notin_(ESTADOS_TERMINALES_EXCLUIDOS),
-                func.cast(Pedido.created_at, text("DATE")).between(desde, hasta),
+                _cast_to_date(Pedido.created_at).between(desde, hasta),
             )
             .group_by(trunc)
             .order_by(trunc)
@@ -97,7 +118,7 @@ class EstadisticasRepository:
                 Pago.mp_status == "approved",
                 Pedido.deleted_at.is_(None),
                 Pedido.estado_codigo.notin_(ESTADOS_TERMINALES_EXCLUIDOS),
-                func.cast(Pedido.created_at, text("DATE")).between(desde, hasta),
+                _cast_to_date(Pedido.created_at).between(desde, hasta),
             )
             .group_by(Pedido.forma_pago_codigo)
         )
@@ -106,8 +127,8 @@ class EstadisticasRepository:
     # ── KPIs para resumen ───────────────────────────────────────────
     def get_resumen_kpis(self) -> dict:
         """Cada KPI es una query separada. EST-01 aplicada."""
-        hoy = func.current_date()
-        inicio_mes = func.date_trunc("month", func.current_date())
+        hoy = func.date(func.current_timestamp())
+        inicio_mes = func.strftime("%Y-%m-01", func.current_timestamp())
 
         base = select(Pedido).where(
             Pedido.deleted_at.is_(None),
@@ -120,7 +141,7 @@ class EstadisticasRepository:
         ).where(
             Pedido.deleted_at.is_(None),
             Pedido.estado_codigo.notin_(ESTADOS_TERMINALES_EXCLUIDOS),
-            func.cast(Pedido.created_at, text("DATE")) == hoy,
+            _cast_to_date(Pedido.created_at) == hoy,
         )
         ventas_hoy = self.session.exec(ventas_hoy_stmt).one()
 

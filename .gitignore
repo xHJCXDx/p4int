@@ -27,4 +27,4 @@ Thumbs.db
 .env.*.local
 
 # Tests
-backend/tests/
+backend/tests/__pycache__/
