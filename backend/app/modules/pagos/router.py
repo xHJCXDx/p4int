@@ -16,11 +16,11 @@ def crear_pago(
     session: Session = Depends(get_session),
     current_user: Usuario = Depends(get_current_user),
 ) -> ApiResponse:
-    """Crea pago con token de tarjeta. Registra en tabla Pago."""
+    """Crea pago y preference de MercadoPago (Checkout Pro)."""
     try:
-        new_pago = service.crear_pago(session, pago, current_user)
+        pago_dict = service.crear_pago(session, pago, current_user)
         return success_response(
-            data=PagoRead.model_validate(new_pago),
+            data=PagoRead.model_validate(pago_dict),
             message="Pago creado exitosamente",
             status_code=201,
         )

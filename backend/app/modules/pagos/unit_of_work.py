@@ -1,7 +1,7 @@
 from sqlmodel import Session
 from app.core.unit_of_work import BaseUnitOfWork
 from app.modules.pagos.repository import PagoRepository
-from app.modules.pedidos.repository import PedidoRepository
+from app.modules.pedidos.repository import PedidoRepository, DetallePedidoRepository
 
 
 class PagoUnitOfWork(BaseUnitOfWork):
@@ -11,3 +11,4 @@ class PagoUnitOfWork(BaseUnitOfWork):
         super().__init__(session)
         self.pagos = PagoRepository(session)
         self.pedidos = PedidoRepository(session)
+        self.detalles = DetallePedidoRepository(session)

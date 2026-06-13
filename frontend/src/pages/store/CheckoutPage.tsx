@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDirecciones } from '../../hooks/useDirecciones';
 import { useCreatePedido } from '../../hooks/usePedidos';
+import { useCrearPago } from '../../hooks/usePagos';
 import { useCarritoStore } from '../../store/useCarritoStore';
 import { useFormasPago } from '../../hooks/useCatalogo';
 import { useToast } from '../../components/Toast';
@@ -12,7 +13,8 @@ export default function CheckoutPage() {
   const navigate = useNavigate();
   const { items, total, clearCarrito } = useCarritoStore();
   const { data: direcciones = [] } = useDirecciones();
-  const { mutate: crearPedido, isPending } = useCreatePedido();
+  const { mutate: crearPedido, isPending: isPendingPedido } = useCreatePedido();
+  const { mutate: crearPago, isPending: isPendingPago } = useCrearPago();
 
   const { data: formasPago = [] } = useFormasPago();
   const [selectedDireccionId, setSelectedDireccionId] = useState<number | null>(null);
@@ -51,10 +53,31 @@ export default function CheckoutPage() {
         })),
       },
       {
-        onSuccess: () => {
+        onSuccess: (pedido) => {
           clearCarrito();
-          showToast('Pedido creado exitosamente', 'success');
-          navigate('/store/mis-pedidos');
+
+          if (formaPago === 'MERCADOPAGO') {
+            crearPago(
+              { pedido_id: pedido.id, transaction_amount: pedido.total ?? 0 },
+              {
+                onSuccess: (pago) => {
+                  if (pago.init_point) {
+                    window.location.href = pago.init_point;
+                  } else {
+                    showToast('Pedido creado. MercadoPago no disponible, pago pendiente.', 'info');
+                    navigate('/store/mis-pedidos');
+                  }
+                },
+                onError: (error: Error) => {
+                  showToast(getApiErrorMessage(error, 'Pedido creado pero fallo el pago'), 'error');
+                  navigate('/store/mis-pedidos');
+                },
+              }
+            );
+          } else {
+            showToast('Pedido creado exitosamente', 'success');
+            navigate('/store/mis-pedidos');
+          }
         },
         onError: (error: Error) => {
           showToast(getApiErrorMessage(error, 'No se pudo crear el pedido'), 'error');
@@ -160,10 +183,10 @@ export default function CheckoutPage() {
             </button>
             <button
               type="submit"
-              disabled={isPending || !selectedDireccionId}
+              disabled={isPendingPedido || isPendingPago || !selectedDireccionId}
               className="flex-1 bg-gray-800 text-white px-6 py-3 rounded-lg hover:bg-gray-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isPending ? 'Creando pedido...' : 'Crear pedido'}
+              {isPendingPago ? 'Redirigiendo a MercadoPago...' : isPendingPedido ? 'Creando pedido...' : 'Confirmar pedido'}
             </button>
           </div>
         </form>

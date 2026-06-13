@@ -8,3 +8,4 @@ PyJWT
 bcrypt
 slowapi
 cloudinary
+mercadopago
