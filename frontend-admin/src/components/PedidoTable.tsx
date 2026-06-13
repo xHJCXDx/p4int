@@ -10,10 +10,13 @@ import {
   SortingState,
 } from '@tanstack/react-table';
 import { Pedido } from '../types/pedido';
+import { EstadoPedido, FormaPago } from '../hooks/useCatalogo';
 
 interface PedidoTableProps {
   data: Pedido[];
   onChangeEstado: (pedidoId: number, accion: string, motivo?: string) => void;
+  estadosPedido: EstadoPedido[];
+  formasPago: FormaPago[];
   isLoading?: boolean;
 }
 
@@ -26,15 +29,6 @@ const ESTADO_BADGE: Record<string, string> = {
   'EN_CAMINO': 'bg-orange-100 text-orange-800',
   'ENTREGADO': 'bg-green-100 text-green-800',
   'CANCELADO': 'bg-red-100 text-red-800',
-};
-
-const ESTADO_LABEL: Record<string, string> = {
-  'PENDIENTE': 'Pendiente',
-  'CONFIRMADO': 'Confirmado',
-  'EN_PREP': 'En preparacion',
-  'EN_CAMINO': 'En camino',
-  'ENTREGADO': 'Entregado',
-  'CANCELADO': 'Cancelado',
 };
 
 const ACCIONES_POR_ESTADO: Record<string, { accion: string; label: string }[]> = {
@@ -55,18 +49,28 @@ const ACCIONES_POR_ESTADO: Record<string, { accion: string; label: string }[]> =
   ],
 };
 
-export function PedidoTable({ data, onChangeEstado, isLoading = false }: PedidoTableProps) {
+export function PedidoTable({ data, onChangeEstado, estadosPedido, formasPago, isLoading = false }: PedidoTableProps) {
+  const getEstadoLabel = (codigo: string) =>
+    estadosPedido.find((e) => e.codigo === codigo)?.descripcion || codigo;
+
+  const getFormaPagoLabel = (codigo: string) =>
+    formasPago.find((f) => f.codigo === codigo)?.descripcion || codigo;
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState('');
   const [filtroEstado, setFiltroEstado] = useState<string>('ACTIVOS');
 
+  const terminalCodes = useMemo(
+    () => new Set(estadosPedido.filter((e) => e.es_terminal).map((e) => e.codigo)),
+    [estadosPedido]
+  );
+
   const filteredByEstado = useMemo(() => {
     if (filtroEstado === 'TODOS') return data;
     if (filtroEstado === 'ACTIVOS') {
-      return data.filter((p) => p.estado_codigo !== 'ENTREGADO' && p.estado_codigo !== 'CANCELADO');
+      return data.filter((p) => !terminalCodes.has(p.estado_codigo));
     }
     return data.filter((p) => p.estado_codigo === filtroEstado);
-  }, [data, filtroEstado]);
+  }, [data, filtroEstado, terminalCodes]);
 
   const columns = useMemo(
     () => [
@@ -81,7 +85,7 @@ export function PedidoTable({ data, onChangeEstado, isLoading = false }: PedidoT
           const estado = info.getValue() || '';
           return (
             <span className={`px-2 py-1 rounded-full text-xs font-semibold ${ESTADO_BADGE[estado] || 'bg-gray-100 text-gray-800'}`}>
-              {ESTADO_LABEL[estado] || estado}
+              {getEstadoLabel(estado)}
             </span>
           );
         },
@@ -122,7 +126,7 @@ export function PedidoTable({ data, onChangeEstado, isLoading = false }: PedidoT
       }),
       columnHelper.accessor('forma_pago_codigo', {
         header: 'Pago',
-        cell: (info) => info.getValue() || '-',
+        cell: (info) => getFormaPagoLabel(info.getValue() || ''),
         enableSorting: true,
         size: 80,
       }),
@@ -204,7 +208,7 @@ export function PedidoTable({ data, onChangeEstado, isLoading = false }: PedidoT
     globalFilterFn: 'includesString',
   });
 
-  const estados = ['ACTIVOS', 'TODOS', 'PENDIENTE', 'CONFIRMADO', 'EN_PREP', 'EN_CAMINO', 'ENTREGADO', 'CANCELADO'];
+  const estados = ['ACTIVOS', 'TODOS', ...estadosPedido.map((e) => e.codigo)];
 
   return (
     <div className="space-y-4">
@@ -228,7 +232,7 @@ export function PedidoTable({ data, onChangeEstado, isLoading = false }: PedidoT
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >
-              {ESTADO_LABEL[est] || est.charAt(0) + est.slice(1).toLowerCase()}
+              {getEstadoLabel(est)}
             </button>
           ))}
         </div>

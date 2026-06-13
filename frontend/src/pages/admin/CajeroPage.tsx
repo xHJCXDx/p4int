@@ -23,11 +23,9 @@ export default function CajeroPage() {
   const getFormaPagoDescripcion = (codigo: string) =>
     formasPago.find((f) => f.codigo === codigo)?.descripcion || codigo;
 
-  // Filtrar solo pedidos activos (no entregados ni cancelados)
-  const pedidosActivos = pedidos.filter(
-    (p) =>
-      p.estado_codigo !== 'ENTREGADO' && p.estado_codigo !== 'CANCELADO'
-  );
+  // Filtrar solo pedidos activos (excluir estados terminales)
+  const terminalCodes = new Set(estadosPedido.filter((e) => e.es_terminal).map((e) => e.codigo));
+  const pedidosActivos = pedidos.filter((p) => !terminalCodes.has(p.estado_codigo));
 
   const handleTransition = (pedidoId: number, accion: string) => {
     transitionEstado(

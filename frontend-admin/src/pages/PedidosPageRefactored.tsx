@@ -1,10 +1,13 @@
 import { PedidoTable } from '../components/PedidoTable';
 import { usePedidos, useTransitionEstado } from '../hooks/usePedidos';
+import { useFormasPago, useEstadosPedido } from '../hooks/useCatalogo';
 import { useToast } from '../components/Toast';
 
 function PedidosPageRefactored() {
   const { data: pedidos = [], isLoading } = usePedidos();
   const transitionMutation = useTransitionEstado();
+  const { data: formasPago = [] } = useFormasPago();
+  const { data: estadosPedido = [] } = useEstadosPedido();
   const { showToast } = useToast();
 
   const handleChangeEstado = async (pedidoId: number, accion: string, _motivo?: string) => {
@@ -26,6 +29,8 @@ function PedidosPageRefactored() {
       <PedidoTable
         data={pedidos}
         onChangeEstado={handleChangeEstado}
+        estadosPedido={estadosPedido}
+        formasPago={formasPago}
         isLoading={isLoading}
       />
     </main>
