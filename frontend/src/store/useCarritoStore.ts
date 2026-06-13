@@ -16,60 +16,58 @@ interface CarritoState {
   removeItem: (producto_id: number) => void;
   updateCantidad: (producto_id: number, cantidad: number) => void;
   clearCarrito: () => void;
-  calcTotal: () => void;
+}
+
+function calcTotal(items: CartItem[]): number {
+  return items.reduce((acc, item) => acc + item.precio * item.cantidad, 0);
 }
 
 export const useCarritoStore = create<CarritoState>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       items: [],
       total: 0,
 
       addItem: (item) => {
-        const state = get();
-        const existing = state.items.find((i) => i.producto_id === item.producto_id);
-
-        if (existing) {
-          // Si ya existe, incrementar cantidad
-          existing.cantidad += item.cantidad;
-        } else {
-          state.items.push(item);
-        }
-
-        set({ items: [...state.items] });
-        get().calcTotal();
+        set((state) => {
+          const existing = state.items.find((i) => i.producto_id === item.producto_id);
+          const newItems = existing
+            ? state.items.map((i) =>
+                i.producto_id === item.producto_id
+                  ? { ...i, cantidad: i.cantidad + item.cantidad }
+                  : i
+              )
+            : [...state.items, item];
+          return { items: newItems, total: calcTotal(newItems) };
+        });
       },
 
       removeItem: (producto_id) => {
-        const newItems = get().items.filter((i) => i.producto_id !== producto_id);
-        set({ items: newItems });
-        get().calcTotal();
+        set((state) => {
+          const newItems = state.items.filter((i) => i.producto_id !== producto_id);
+          return { items: newItems, total: calcTotal(newItems) };
+        });
       },
 
       updateCantidad: (producto_id, cantidad) => {
-        if (cantidad <= 0) {
-          get().removeItem(producto_id);
-        } else {
-          const item = get().items.find((i) => i.producto_id === producto_id);
-          if (item) {
-            item.cantidad = cantidad;
-            set({ items: [...get().items] });
-            get().calcTotal();
+        set((state) => {
+          if (cantidad <= 0) {
+            const newItems = state.items.filter((i) => i.producto_id !== producto_id);
+            return { items: newItems, total: calcTotal(newItems) };
           }
-        }
+          const newItems = state.items.map((i) =>
+            i.producto_id === producto_id ? { ...i, cantidad } : i
+          );
+          return { items: newItems, total: calcTotal(newItems) };
+        });
       },
 
       clearCarrito: () => {
         set({ items: [], total: 0 });
       },
-
-      calcTotal: () => {
-        const total = get().items.reduce((acc, item) => acc + item.precio * item.cantidad, 0);
-        set({ total });
-      },
     }),
     {
-      name: 'carrito-storage', // Clave en localStorage
+      name: 'carrito-storage',
     }
   )
 );

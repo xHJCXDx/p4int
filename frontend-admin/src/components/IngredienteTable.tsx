@@ -43,7 +43,7 @@ export function IngredienteTable({ data, onEdit, onDelete, isLoading = false, is
         cell: (info) => info.getValue() || '-',
         enableSorting: false,
       }),
-      columnHelper.accessor('stock_cantidad', {
+      columnHelper.accessor('stock', {
         header: 'Stock',
         cell: (info) => (
           <span className={info.getValue() > 0 ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'}>

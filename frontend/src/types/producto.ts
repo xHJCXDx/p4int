@@ -15,9 +15,10 @@ export interface Producto {
   id: number;
   nombre: string;
   descripcion: string;
-  precio_base: number;
+  precio: number;
   imagenes_url?: string[];
-  stock_cantidad: number;
+  unidad_venta_codigo?: string;
+  stock: number;
   disponible: boolean;
   categorias: CategoriaInProducto[];
   ingredientes: IngredienteInProducto[];
@@ -34,7 +35,7 @@ export interface IngredienteEnReceta {
 export interface ProductoCreate {
   nombre: string;
   descripcion: string;
-  precio_base: number;
+  precio: number;
   imagenes_url?: string[];
   categoria_ids?: number[];
   ingredientes?: IngredienteEnReceta[];

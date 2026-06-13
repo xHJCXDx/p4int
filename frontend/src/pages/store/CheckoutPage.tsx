@@ -4,6 +4,8 @@ import { useDirecciones } from '../../hooks/useDirecciones';
 import { useCreatePedido } from '../../hooks/usePedidos';
 import { useCarritoStore } from '../../store/useCarritoStore';
 import { useToast } from '../../components/Toast';
+import { DireccionEntrega } from '../../types/direccion';
+import { AxiosError } from 'axios';
 
 export default function CheckoutPage() {
   const navigate = useNavigate();
@@ -17,10 +19,10 @@ export default function CheckoutPage() {
 
   useEffect(() => {
     if (direcciones.length > 0 && selectedDireccionId === null) {
-      const principal = direcciones.find((d: any) => d.es_principal);
+      const principal = direcciones.find((d: DireccionEntrega) => d.es_principal);
       setSelectedDireccionId(principal?.id ?? direcciones[0].id);
     }
-  }, [direcciones, selectedDireccionId]);
+  }, [direcciones]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,24 +32,27 @@ export default function CheckoutPage() {
       return;
     }
 
-    const lineaVentas = items.map((item) => ({
-      producto_id: item.producto_id,
-      cantidad: item.cantidad,
-    }));
-
-    crearPedido({
-      direccion_id: selectedDireccionId,
-      forma_pago_codigo: formaPago,
-      linea_ventas: lineaVentas,
-    } as any,
+    crearPedido(
+      {
+        direccion_id: selectedDireccionId,
+        forma_pago_codigo: formaPago,
+        linea_ventas: items.map((item) => ({
+          producto_id: item.producto_id,
+          cantidad: item.cantidad,
+        })),
+      },
       {
         onSuccess: () => {
           clearCarrito();
           showToast('Pedido creado exitosamente', 'success');
           navigate('/store/mis-pedidos');
         },
-        onError: (error: any) => {
-          showToast(error.response?.data?.detail || 'No se pudo crear el pedido', 'error');
+        onError: (error: Error) => {
+          const axiosError = error as AxiosError<{ message?: string; detail?: string }>;
+          const msg = axiosError.response?.data?.message
+            || axiosError.response?.data?.detail
+            || 'No se pudo crear el pedido';
+          showToast(msg, 'error');
         },
       }
     );
@@ -58,7 +63,7 @@ export default function CheckoutPage() {
       <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-3xl mx-auto text-center">
           <h1 className="text-3xl font-extrabold text-gray-900 mb-4">Checkout</h1>
-          <p className="text-gray-500 text-lg">El carrito está vacío</p>
+          <p className="text-gray-500 text-lg">El carrito esta vacio</p>
         </div>
       </div>
     );
@@ -91,12 +96,12 @@ export default function CheckoutPage() {
 
           {/* Dirección de entrega */}
           <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Dirección de entrega</h2>
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">Direccion de entrega</h2>
             {direcciones.length === 0 ? (
-              <p className="text-gray-600">No tienes direcciones guardadas. Por favor crea una en tu perfil.</p>
+              <p className="text-gray-600">No tenes direcciones guardadas. Crea una desde tu perfil.</p>
             ) : (
               <div className="space-y-3">
-                {direcciones.map((dir: any) => (
+                {direcciones.map((dir: DireccionEntrega) => (
                   <label key={dir.id} className="flex items-start gap-3 p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50">
                     <input
                       type="radio"

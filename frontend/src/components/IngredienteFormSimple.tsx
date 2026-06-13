@@ -34,7 +34,7 @@ export function IngredienteFormSimple({
       nombre: initialData?.nombre || '',
       descripcion: initialData?.descripcion || '',
       es_alergeno: initialData?.es_alergeno || false,
-      stock_cantidad: initialData?.stock_cantidad || 0,
+      stock: initialData?.stock || 0,
       unidad_medida_codigo: initialData?.unidad_medida_codigo || 'u',
     },
     onSubmit: async ({ value }) => {
@@ -109,7 +109,7 @@ export function IngredienteFormSimple({
 
       {/* Stock + Unidad de medida en la misma fila */}
       <div className="grid grid-cols-2 gap-4">
-        <form.Field name="stock_cantidad">
+        <form.Field name="stock">
           {(field) => (
             <div>
               <label className="block text-gray-700 font-bold mb-2">Stock *</label>

@@ -13,7 +13,10 @@ export interface Usuario {
 
 interface AuthState {
   usuario: Usuario | null;
+  accessToken: string | null;
+  refreshToken: string | null;
   isAuthenticated: boolean;
+  setAuth: (usuario: Usuario, accessToken: string, refreshToken: string) => void;
   setUsuario: (usuario: Usuario | null) => void;
   logout: () => void;
   hasRole: (role: string) => boolean;
@@ -23,7 +26,18 @@ export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
       usuario: null,
+      accessToken: null,
+      refreshToken: null,
       isAuthenticated: false,
+
+      setAuth: (usuario, accessToken, refreshToken) => {
+        set({
+          usuario,
+          accessToken,
+          refreshToken,
+          isAuthenticated: true,
+        });
+      },
 
       setUsuario: (usuario) => {
         set({
@@ -35,6 +49,8 @@ export const useAuthStore = create<AuthState>()(
       logout: () => {
         set({
           usuario: null,
+          accessToken: null,
+          refreshToken: null,
           isAuthenticated: false,
         });
       },

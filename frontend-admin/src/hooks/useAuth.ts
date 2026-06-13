@@ -14,7 +14,7 @@ export interface RegisterCredentials {
 }
 
 export function useLogin() {
-  const setUsuario = useAuthStore((state) => state.setUsuario);
+  const setAuth = useAuthStore((state) => state.setAuth);
 
   return useMutation({
     mutationFn: async (credentials: LoginCredentials) => {
@@ -25,9 +25,9 @@ export function useLogin() {
         throw new Error(result.message || 'Credenciales invalidas');
       }
 
-      const userData = result.data;
-      setUsuario(userData);
-      return userData;
+      const { user, tokens } = result.data;
+      setAuth(user, tokens.access_token, tokens.refresh_token);
+      return user;
     },
   });
 }
@@ -46,7 +46,10 @@ export function useLogout() {
 
   return useMutation({
     mutationFn: async () => {
-      await apiClient.post('/auth/logout');
+      const refreshToken = useAuthStore.getState().refreshToken;
+      if (refreshToken) {
+        await apiClient.post('/auth/logout', { refresh_token: refreshToken });
+      }
     },
     onSuccess: () => {
       logout();

@@ -22,7 +22,7 @@ export default function HomeStorePage() {
     addItem({
       producto_id: producto.id,
       nombre: producto.nombre,
-      precio: producto.precio_base,
+      precio: producto.precio,
       cantidad: 1,
       imagen: producto.imagenes_url?.[0],
     });
@@ -121,7 +121,7 @@ export default function HomeStorePage() {
                 )}
 
                 <div className="flex justify-between items-center">
-                  <span className="text-2xl font-bold text-blue-600">${producto.precio_base}</span>
+                  <span className="text-2xl font-bold text-blue-600">${producto.precio}</span>
                   <div className="flex gap-2">
                     <Link
                       to={`/store/producto/${producto.id}`}

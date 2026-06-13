@@ -10,6 +10,10 @@ apiClient.interceptors.request.use((config) => {
   if (config.url && !config.url.endsWith('/') && !config.url.includes('?')) {
     config.url = `${config.url}/`;
   }
+  const token = useAuthStore.getState().accessToken;
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
   return config;
 });
 

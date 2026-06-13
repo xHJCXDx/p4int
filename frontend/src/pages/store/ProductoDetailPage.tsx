@@ -40,7 +40,7 @@ export default function ProductoDetailPage() {
     addItem({
       producto_id: producto.id,
       nombre: producto.nombre,
-      precio: producto.precio_base,
+      precio: producto.precio,
       cantidad: 1,
     });
     showToast('Producto agregado al carrito', 'success');
@@ -66,12 +66,12 @@ export default function ProductoDetailPage() {
           <div className="grid grid-cols-2 gap-6 mb-6">
             <div>
               <p className="text-sm text-gray-500">Precio</p>
-              <p className="text-3xl font-bold text-blue-600">${producto.precio_base.toFixed(2)}</p>
+              <p className="text-3xl font-bold text-blue-600">${producto.precio.toFixed(2)}</p>
             </div>
             <div>
               <p className="text-sm text-gray-500">Stock disponible</p>
-              <p className={`text-xl font-bold ${producto.stock_cantidad > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                {producto.stock_cantidad > 0 ? `${producto.stock_cantidad} unidades` : 'Sin stock'}
+              <p className={`text-xl font-bold ${producto.stock > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                {producto.stock > 0 ? `${producto.stock} unidades` : 'Sin stock'}
               </p>
             </div>
           </div>
@@ -113,10 +113,10 @@ export default function ProductoDetailPage() {
 
           <button
             onClick={handleAddToCart}
-            disabled={!producto.disponible || producto.stock_cantidad === 0}
+            disabled={!producto.disponible || producto.stock === 0}
             className="w-full bg-gray-800 text-white py-3 rounded-lg hover:bg-gray-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {producto.disponible && producto.stock_cantidad > 0
+            {producto.disponible && producto.stock > 0
               ? 'Agregar al carrito'
               : 'No disponible'}
           </button>

@@ -9,7 +9,7 @@ export const ingredienteEnRecetaSchema = z.object({
 export const productoFormSchema = z.object({
   nombre: z.string().min(1, 'El nombre es requerido').min(3, 'Minimo 3 caracteres'),
   descripcion: z.string().min(1, 'La descripcion es requerida'),
-  precio_base: z.number().min(0.01, 'El precio debe ser mayor a 0'),
+  precio: z.number().min(0.01, 'El precio debe ser mayor a 0'),
   imagenes_url: z.array(z.string()).optional().default([]),
   categoria_ids: z.array(z.number()).default([]),
   ingredientes: z.array(ingredienteEnRecetaSchema).default([]),

@@ -15,7 +15,7 @@ interface Props {
 function getDefaults(p?: Producto | null): {
   nombre: string;
   descripcion: string;
-  precio_base: number;
+  precio: number;
   imagenes_url: string[];
   categoria_ids: number[];
   ingredientes: IngredienteEnReceta[];
@@ -23,7 +23,7 @@ function getDefaults(p?: Producto | null): {
   return {
     nombre: p?.nombre || '',
     descripcion: p?.descripcion || '',
-    precio_base: p?.precio_base || 0,
+    precio: p?.precio || 0,
     imagenes_url: p?.imagenes_url || [],
     categoria_ids: p?.categorias?.map((c) => c.id) || [],
     ingredientes:
@@ -107,7 +107,7 @@ const ProductoModal = ({ isOpen, onClose, onSubmit, productoInitial }: Props) =>
             )}
           </form.Field>
 
-          <form.Field name="precio_base">
+          <form.Field name="precio">
             {(field) => (
               <div className="mb-4">
                 <label className="block text-gray-700 text-sm font-bold mb-2">Precio Base</label>
@@ -239,7 +239,7 @@ const ProductoModal = ({ isOpen, onClose, onSubmit, productoInitial }: Props) =>
                                 </span>
                               )}
                               <span className="ml-1 text-xs text-gray-400">
-                                (stock: {ing.stock_cantidad})
+                                (stock: {ing.stock})
                               </span>
                             </span>
                             <input
@@ -290,7 +290,7 @@ const ProductoModal = ({ isOpen, onClose, onSubmit, productoInitial }: Props) =>
                       </option>
                       {ingredientesDisponibles.map((ing) => (
                         <option key={ing.id} value={ing.id}>
-                          {ing.nombre} {ing.es_alergeno ? '(alergeno)' : ''} — stock: {ing.stock_cantidad}
+                          {ing.nombre} {ing.es_alergeno ? '(alergeno)' : ''} — stock: {ing.stock}
                         </option>
                       ))}
                     </select>

@@ -3,7 +3,7 @@ export interface Ingrediente {
   nombre: string;
   descripcion?: string;
   es_alergeno: boolean;
-  stock_cantidad: number;
+  stock: number;
   unidad_medida_codigo: string;
   created_at?: string;
   updated_at?: string;

@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../api/axios';
-import { Pedido } from '../types/pedido';
+import { Pedido, PedidoCheckoutCreate } from '../types/pedido';
 
 const API_URL = '/pedidos';
 
@@ -16,9 +16,7 @@ const fetchPedido = async (id: number): Promise<Pedido> => {
   return response.data.data || response.data;
 };
 
-const createPedido = async (
-  data: Omit<Pedido, 'id' | 'created_at' | 'updated_at' | 'deleted_at'>
-): Promise<Pedido> => {
+const createPedidoFromCheckout = async (data: PedidoCheckoutCreate): Promise<Pedido> => {
   const response = await apiClient.post<any>(API_URL, data);
   return response.data.data || response.data;
 };
@@ -66,8 +64,7 @@ export const useCreatePedido = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: Omit<Pedido, 'id' | 'created_at' | 'updated_at' | 'deleted_at'>) =>
-      createPedido(data),
+    mutationFn: (data: PedidoCheckoutCreate) => createPedidoFromCheckout(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pedidos'] });
     },

@@ -3,6 +3,13 @@ export interface LineaVenta {
   cantidad: number;
 }
 
+export interface PedidoCheckoutCreate {
+  direccion_id: number;
+  forma_pago_codigo: string;
+  notas?: string;
+  linea_ventas: LineaVenta[];
+}
+
 export interface DetalleInPedido {
   producto_id: number;
   cantidad: number;
