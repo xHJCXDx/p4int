@@ -3,6 +3,7 @@ import Navbar from './components/Navbar';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { ToastProvider } from './components/Toast';
 import { ConfirmProvider } from './components/ConfirmDialog';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
 // Store pages
 import HomeStorePage from './pages/store/HomeStorePage';
@@ -83,14 +84,16 @@ function AppRoutes() {
 function App() {
   return (
     <Router>
-      <ToastProvider>
-        <ConfirmProvider>
-          <div className="min-h-screen bg-gray-50">
-            <Navbar />
-            <AppRoutes />
-          </div>
-        </ConfirmProvider>
-      </ToastProvider>
+      <ErrorBoundary>
+        <ToastProvider>
+          <ConfirmProvider>
+            <div className="min-h-screen bg-gray-50">
+              <Navbar />
+              <AppRoutes />
+            </div>
+          </ConfirmProvider>
+        </ToastProvider>
+      </ErrorBoundary>
     </Router>
   );
 }
