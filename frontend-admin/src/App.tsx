@@ -14,6 +14,7 @@ import CategoriasPage from './pages/CategoriasPage';
 import ProductsPage from './pages/ProductsPage';
 import IngredientesPageRefactored from './pages/IngredientesPageRefactored';
 import PedidosPageRefactored from './pages/PedidosPageRefactored';
+import DashboardPage from './pages/DashboardPage';
 
 // Error pages
 const NotFoundPage = () => (
@@ -39,6 +40,16 @@ function AppRoutes() {
     <Routes>
       {/* Auth */}
       <Route path="/login" element={<LoginPage />} />
+
+      {/* Dashboard */}
+      <Route
+        path="/dashboard"
+        element={
+          <ProtectedRoute roles={['ADMIN']}>
+            <DashboardPage />
+          </ProtectedRoute>
+        }
+      />
 
       {/* CRUD pages */}
       <Route
@@ -79,7 +90,7 @@ function AppRoutes() {
       <Route path="/404" element={<NotFoundPage />} />
 
       {/* Default redirect */}
-      <Route path="/" element={<Navigate to="/pedidos" replace />} />
+      <Route path="/" element={<Navigate to="/dashboard" replace />} />
       <Route path="*" element={<Navigate to="/404" replace />} />
     </Routes>
   );

@@ -1,9 +1,10 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useForm } from '@tanstack/react-form';
 import { Producto, IngredienteEnReceta } from '../types/producto';
 import { productoFormSchema, ProductoFormType } from '../schemas/producto.schema';
 import { useCategorias } from '../hooks/useCategorias';
 import { useIngredientes } from '../hooks/useIngredientes';
+import { useUploadImagen } from '../hooks/useUpload';
 
 interface Props {
   isOpen: boolean;
@@ -38,6 +39,8 @@ function getDefaults(p?: Producto | null): {
 const ProductoModal = ({ isOpen, onClose, onSubmit, productoInitial }: Props) => {
   const { data: categorias = [] } = useCategorias();
   const { data: ingredientes = [] } = useIngredientes();
+  const { mutate: uploadImagen, isPending: isUploading } = useUploadImagen();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const form = useForm({
     defaultValues: getDefaults(productoInitial),
@@ -130,17 +133,55 @@ const ProductoModal = ({ isOpen, onClose, onSubmit, productoInitial }: Props) =>
           <form.Field name="imagenes_url">
             {(field) => (
               <div className="mb-4">
-                <label className="block text-gray-700 text-sm font-bold mb-2">URLs Imagenes (separadas por coma, opcional)</label>
+                <label className="block text-gray-700 text-sm font-bold mb-2">Imagenes</label>
+
+                {/* Preview de imagenes actuales */}
+                {field.state.value.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    {field.state.value.map((url, idx) => (
+                      <div key={idx} className="relative group">
+                        <img
+                          src={url}
+                          alt={`Imagen ${idx + 1}`}
+                          className="w-20 h-20 object-cover rounded border"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => field.handleChange(field.state.value.filter((_, i) => i !== idx))}
+                          className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-5 h-5 text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          X
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Boton de upload */}
                 <input
-                  type="text"
-                  value={field.state.value.join(', ')}
-                  onChange={(e) => field.handleChange(
-                    e.target.value ? e.target.value.split(',').map((s) => s.trim()).filter(Boolean) : []
-                  )}
-                  onBlur={field.handleBlur}
-                  placeholder="https://ejemplo.com/img1.jpg, https://ejemplo.com/img2.jpg"
-                  className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    uploadImagen(file, {
+                      onSuccess: (url) => {
+                        field.handleChange([...field.state.value, url]);
+                      },
+                    });
+                    e.target.value = '';
+                  }}
                 />
+                <button
+                  type="button"
+                  disabled={isUploading}
+                  onClick={() => fileInputRef.current?.click()}
+                  className="bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm px-4 py-2 rounded border transition-colors disabled:opacity-50"
+                >
+                  {isUploading ? 'Subiendo...' : '+ Subir imagen'}
+                </button>
               </div>
             )}
           </form.Field>

@@ -44,6 +44,11 @@ const Navbar = () => {
                 return (
                   <>
                     {isAdmin && (
+                      <Link to="/dashboard" className="text-white hover:text-gray-100 font-semibold transition-colors">
+                        Dashboard
+                      </Link>
+                    )}
+                    {isAdmin && (
                       <Link to="/categorias" className="text-white hover:text-gray-100 font-semibold transition-colors">
                         Categorias
                       </Link>
