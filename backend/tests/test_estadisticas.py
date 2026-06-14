@@ -37,7 +37,7 @@ def estadisticas_seed_fixture(session, admin_client):
     session.commit()
 
     # Producto para detalles
-    producto = Producto(nombre="Hamburguesa", descripcion="", precio=500.0)
+    producto = Producto(nombre="Hamburguesa", descripcion="", precio_base=500.0)
     session.add(producto)
     session.flush()
 

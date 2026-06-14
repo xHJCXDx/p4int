@@ -24,7 +24,7 @@ def test_get_productos_con_datos(client, session):
         prod_data = ProductoCreate(
             nombre=f"Producto {i}",
             descripcion=f"Descripción {i}",
-            precio=100.0 * (i + 1)
+            precio_base=100.0 * (i + 1)
         )
         producto_service.create(session, prod_data)
 
@@ -41,7 +41,7 @@ def test_get_productos_paginacion(client, session):
         prod_data = ProductoCreate(
             nombre=f"Prod {i}",
             descripcion=f"Desc {i}",
-            precio=100.0
+            precio_base=100.0
         )
         producto_service.create(session, prod_data)
 
@@ -64,23 +64,23 @@ def test_get_productos_paginacion(client, session):
 
 def test_get_productos_filtro_busqueda(client, session):
     """GET / con filtro de búsqueda por nombre."""
-    prod1 = ProductoCreate(nombre="Hamburguesa", descripcion="", precio=100.0)
+    prod1 = ProductoCreate(nombre="Hamburguesa", descripcion="", precio_base=100.0)
     producto_service.create(session, prod1)
 
-    prod2 = ProductoCreate(nombre="Hamburguesón", descripcion="", precio=100.0)
+    prod2 = ProductoCreate(nombre="Hamburguesón", descripcion="", precio_base=100.0)
     producto_service.create(session, prod2)
 
-    prod3 = ProductoCreate(nombre="Pizza", descripcion="", precio=100.0)
+    prod3 = ProductoCreate(nombre="Pizza", descripcion="", precio_base=100.0)
     producto_service.create(session, prod3)
 
     # Buscar "hamb"
-    response = client.get("/api/v1/productos/?busqueda=hamb")
+    response = client.get("/api/v1/productos/?search=hamb")
     assert response.status_code == 200
     data = response.json()
     assert data["data"]["total"] == 2
 
     # Buscar "pizza"
-    response = client.get("/api/v1/productos/?busqueda=pizza")
+    response = client.get("/api/v1/productos/?search=pizza")
     assert response.status_code == 200
     data = response.json()
     assert data["data"]["total"] == 1
@@ -98,23 +98,23 @@ def test_get_productos_filtro_categoria(client, session):
     session.refresh(cat2)
 
     # Crear productos: 2 en cat1, 1 en cat2
-    prod1 = ProductoCreate(nombre="Hamburguesa", descripcion="", precio=100.0, categoria_ids=[cat1.id])
+    prod1 = ProductoCreate(nombre="Hamburguesa", descripcion="", precio_base=100.0, categoria_ids=[cat1.id])
     producto_service.create(session, prod1)
 
-    prod2 = ProductoCreate(nombre="Pizza", descripcion="", precio=100.0, categoria_ids=[cat1.id])
+    prod2 = ProductoCreate(nombre="Pizza", descripcion="", precio_base=100.0, categoria_ids=[cat1.id])
     producto_service.create(session, prod2)
 
-    prod3 = ProductoCreate(nombre="Coca Cola", descripcion="", precio=50.0, categoria_ids=[cat2.id])
+    prod3 = ProductoCreate(nombre="Coca Cola", descripcion="", precio_base=50.0, categoria_ids=[cat2.id])
     producto_service.create(session, prod3)
 
     # Filtrar por cat1
-    response = client.get(f"/api/v1/productos/?categoria_id={cat1.id}")
+    response = client.get(f"/api/v1/productos/?categoria={cat1.id}")
     assert response.status_code == 200
     data = response.json()
     assert data["data"]["total"] == 2
 
     # Filtrar por cat2
-    response = client.get(f"/api/v1/productos/?categoria_id={cat2.id}")
+    response = client.get(f"/api/v1/productos/?categoria={cat2.id}")
     assert response.status_code == 200
     data = response.json()
     assert data["data"]["total"] == 1
@@ -125,7 +125,7 @@ def test_create_producto_sin_auth(client):
     payload = {
         "nombre": "Nuevo Producto",
         "descripcion": "Descripción",
-        "precio": 100.0
+        "precio_base": 100.0
     }
     response = client.post("/api/v1/productos/", json=payload)
     assert response.status_code == 401
@@ -136,14 +136,14 @@ def test_create_producto_con_admin(admin_client):
     payload = {
         "nombre": "Nuevo Producto",
         "descripcion": "Una descripción",
-        "precio": 150.0,
+        "precio_base": 150.0,
     }
     response = admin_client.post("/api/v1/productos/", json=payload)
     assert response.status_code == 201
     data = response.json()
     assert data["success"] is True
     assert data["data"]["nombre"] == "Nuevo Producto"
-    assert data["data"]["precio"] == 150.0
+    assert float(data["data"]["precio_base"]) == 150.0
 
 
 def test_create_producto_con_imagenes(admin_client):
@@ -151,7 +151,7 @@ def test_create_producto_con_imagenes(admin_client):
     payload = {
         "nombre": "Producto con Fotos",
         "descripcion": "Tiene múltiples imágenes",
-        "precio": 200.0,
+        "precio_base": 200.0,
         "imagenes_url": [
             "http://example.com/img1.jpg",
             "http://example.com/img2.jpg"
@@ -165,7 +165,7 @@ def test_create_producto_con_imagenes(admin_client):
 
 def test_update_producto_sin_auth(client, session):
     """PUT sin autenticación debe retornar 401."""
-    prod_data = ProductoCreate(nombre="Original", descripcion="", precio=100.0)
+    prod_data = ProductoCreate(nombre="Original", descripcion="", precio_base=100.0)
     prod = producto_service.create(session, prod_data)
     session.refresh(prod)
 
@@ -179,20 +179,20 @@ def test_update_producto_con_admin(admin_client, session):
     prod_data = ProductoCreate(
         nombre="Original",
         descripcion="Desc original",
-        precio=100.0,
+        precio_base=100.0,
     )
     prod = producto_service.create(session, prod_data)
     session.refresh(prod)
 
     payload = {
         "nombre": "Actualizado",
-        "precio": 150.0,
+        "precio_base": 150.0,
     }
     response = admin_client.put(f"/api/v1/productos/{prod.id}", json=payload)
     assert response.status_code == 200
     data = response.json()
     assert data["data"]["nombre"] == "Actualizado"
-    assert data["data"]["precio"] == 150.0
+    assert float(data["data"]["precio_base"]) == 150.0
 
 
 def test_update_producto_no_existente(admin_client):
@@ -200,13 +200,13 @@ def test_update_producto_no_existente(admin_client):
     payload = {"nombre": "No existe"}
     response = admin_client.put("/api/v1/productos/999", json=payload)
     data = response.json()
-    assert data["success"] is False
-    assert "no encontrado" in data["message"].lower()
+    assert data["code"] == "NOT_FOUND"
+    assert "no encontrado" in data["detail"].lower()
 
 
 def test_delete_producto_sin_auth(client, session):
     """DELETE sin autenticación debe retornar 401."""
-    prod_data = ProductoCreate(nombre="Para borrar", descripcion="", precio=100.0)
+    prod_data = ProductoCreate(nombre="Para borrar", descripcion="", precio_base=100.0)
     prod = producto_service.create(session, prod_data)
     session.refresh(prod)
 
@@ -216,7 +216,7 @@ def test_delete_producto_sin_auth(client, session):
 
 def test_delete_producto_con_admin(admin_client, session):
     """DELETE con admin debe soft-deletar producto."""
-    prod_data = ProductoCreate(nombre="Para eliminar", descripcion="", precio=100.0)
+    prod_data = ProductoCreate(nombre="Para eliminar", descripcion="", precio_base=100.0)
     prod = producto_service.create(session, prod_data)
     session.refresh(prod)
 
@@ -228,5 +228,5 @@ def test_delete_producto_no_existente(admin_client):
     """DELETE a producto inexistente."""
     response = admin_client.delete("/api/v1/productos/999")
     data = response.json()
-    assert data["success"] is False
-    assert "no encontrado" in data["message"].lower()
+    assert data["code"] == "NOT_FOUND"
+    assert "no encontrado" in data["detail"].lower()

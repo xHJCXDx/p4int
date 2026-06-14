@@ -12,14 +12,14 @@ def test_create_producto_basico(session):
     prod_data = ProductoCreate(
         nombre="Hamburguesa",
         descripcion="Hamburguesa clásica",
-        precio=500.0,
+        precio_base=500.0,
     )
     producto = producto_service.create(session, prod_data)
 
     assert producto.id is not None
     assert producto.nombre == "Hamburguesa"
-    assert producto.precio == 500.0
-    assert producto.imagenes_url == []
+    assert producto.precio_base == 500.0
+    assert producto.imagenes_url is None
 
 
 def test_create_producto_con_imagenes(session):
@@ -32,7 +32,7 @@ def test_create_producto_con_imagenes(session):
     prod_data = ProductoCreate(
         nombre="Pizza",
         descripcion="Pizza de mozzarella",
-        precio=800.0,
+        precio_base=800.0,
         imagenes_url=imagenes,
     )
     producto = producto_service.create(session, prod_data)
@@ -56,7 +56,7 @@ def test_create_producto_con_categorias(session):
     prod_data = ProductoCreate(
         nombre="Hamburguesa Doble",
         descripcion="Con dos carnes",
-        precio=900.0,
+        precio_base=900.0,
         categoria_ids=[cat1.id, cat2.id]
     )
     producto = producto_service.create(session, prod_data)
@@ -72,7 +72,7 @@ def test_create_producto_categoria_inexistente(session):
     prod_data = ProductoCreate(
         nombre="Tacos",
         descripcion="Tacos al pastor",
-        precio=600.0,
+        precio_base=600.0,
         categoria_ids=[999]  # ID que no existe
     )
     producto = producto_service.create(session, prod_data)
@@ -90,7 +90,7 @@ def test_get_all_productos_paginado(session):
         prod_data = ProductoCreate(
             nombre=f"Producto {i}",
             descripcion=f"Descripción {i}",
-            precio=100.0 * (i + 1)
+            precio_base=100.0 * (i + 1)
         )
         producto_service.create(session, prod_data)
 
@@ -110,7 +110,7 @@ def test_get_by_id_existente(session):
     prod_data = ProductoCreate(
         nombre="Ceviche",
         descripcion="Ceviche fresco",
-        precio=350.0
+        precio_base=350.0
     )
     created = producto_service.create(session, prod_data)
     session.refresh(created)
@@ -133,7 +133,7 @@ def test_update_producto(session):
     prod_data = ProductoCreate(
         nombre="Original",
         descripcion="Descripción original",
-        precio=100.0,
+        precio_base=100.0,
     )
     created = producto_service.create(session, prod_data)
     session.refresh(created)
@@ -141,13 +141,13 @@ def test_update_producto(session):
     # Actualizar
     update_data = ProductoUpdate(
         nombre="Actualizado",
-        precio=150.0,
+        precio_base=150.0,
     )
     updated = producto_service.update(session, created, update_data)
     session.refresh(updated)
 
     assert updated.nombre == "Actualizado"
-    assert updated.precio == 150.0
+    assert updated.precio_base == 150.0
 
 
 def test_update_producto_categorias(session):
@@ -169,7 +169,7 @@ def test_update_producto_categorias(session):
     prod_data = ProductoCreate(
         nombre="Producto",
         descripcion="Desc",
-        precio=100.0,
+        precio_base=100.0,
         categoria_ids=[cat1.id, cat2.id]
     )
     producto = producto_service.create(session, prod_data)
@@ -189,7 +189,7 @@ def test_update_producto_categorias(session):
 
 def test_delete_producto_soft_delete(session):
     """Eliminar un producto (soft delete)."""
-    prod_data = ProductoCreate(nombre="Para eliminar", descripcion="Será eliminado", precio=100.0)
+    prod_data = ProductoCreate(nombre="Para eliminar", descripcion="Será eliminado", precio_base=100.0)
     created = producto_service.create(session, prod_data)
     session.refresh(created)
 
@@ -203,7 +203,7 @@ def test_delete_producto_soft_delete(session):
 
 def test_deleted_producto_invisible(session):
     """Después de soft delete, get_by_id retorna None."""
-    prod_data = ProductoCreate(nombre="Será invisible", descripcion="Soft deleted", precio=100.0)
+    prod_data = ProductoCreate(nombre="Será invisible", descripcion="Soft deleted", precio_base=100.0)
     created = producto_service.create(session, prod_data)
     session.refresh(created)
 

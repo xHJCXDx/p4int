@@ -247,7 +247,7 @@ def test_create_detalle_pedido(session, catalogo_seed):
     prod_data = ProductoCreate(
         nombre="Hamburguesa",
         descripcion="Clásica",
-        precio=500.0
+        precio_base=500.0
     )
     producto = producto_service.create(session, prod_data)
     session.refresh(producto)
@@ -287,7 +287,7 @@ def test_get_detalles_pedido(session, catalogo_seed):
     # Crear 2 productos
     productos = []
     for i in range(2):
-        prod_data = ProductoCreate(nombre=f"Pizza {i}", descripcion="", precio=800.0)
+        prod_data = ProductoCreate(nombre=f"Pizza {i}", descripcion="", precio_base=800.0)
         prod = producto_service.create(session, prod_data)
         session.refresh(prod)
         productos.append(prod)

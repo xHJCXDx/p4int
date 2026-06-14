@@ -121,8 +121,8 @@ def test_update_ingrediente_no_existente(admin_client):
     payload = {"descripcion": "No existe"}
     response = admin_client.put("/api/v1/ingredientes/999", json=payload)
     data = response.json()
-    assert data["success"] is False
-    assert "no encontrado" in data["message"].lower()
+    assert data["code"] == "NOT_FOUND"
+    assert "no encontrado" in data["detail"].lower()
 
 
 def test_delete_ingrediente_sin_auth(client, session):
@@ -151,5 +151,5 @@ def test_delete_ingrediente_no_existente(admin_client):
     """DELETE a ingrediente inexistente debe retornar error."""
     response = admin_client.delete("/api/v1/ingredientes/999")
     data = response.json()
-    assert data["success"] is False
-    assert "no encontrado" in data["message"].lower()
+    assert data["code"] == "NOT_FOUND"
+    assert "no encontrado" in data["detail"].lower()

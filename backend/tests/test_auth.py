@@ -27,7 +27,7 @@ def test_register_email_duplicado(client):
     }
     client.post("/api/v1/auth/register", json=payload)
     response = client.post("/api/v1/auth/register", json=payload)
-    assert response.status_code == 400
+    assert response.status_code == 409
 
 
 def test_login_ok(client):
@@ -47,11 +47,9 @@ def test_login_ok(client):
     assert response.status_code == 200
     data = response.json()
     assert data["success"] is True
-    assert "tokens" in data["data"]
-    tokens = data["data"]["tokens"]
-    assert "access_token" in tokens
-    assert "refresh_token" in tokens
-    assert tokens["token_type"] == "bearer"
+    assert "access_token" in data["data"]
+    assert "refresh_token" in data["data"]
+    assert data["data"]["token_type"] == "bearer"
 
 
 def test_login_credenciales_invalidas(client):
@@ -70,7 +68,7 @@ def test_login_credenciales_invalidas(client):
     })
     assert response.status_code == 401
     data = response.json()
-    assert data["success"] is False
+    assert data["code"] == "INVALID_CREDENTIALS"
 
 
 def test_login_email_inexistente(client):
@@ -110,7 +108,7 @@ def test_logout_con_refresh_token(client):
         "email": "logout@test.com",
         "password": "Secret123!",
     })
-    tokens = login_resp.json()["data"]["tokens"]
+    tokens = login_resp.json()["data"]
     access_token = tokens["access_token"]
     refresh_token = tokens["refresh_token"]
 
@@ -120,7 +118,7 @@ def test_logout_con_refresh_token(client):
         json={"refresh_token": refresh_token},
         headers={"Authorization": f"Bearer {access_token}"},
     )
-    assert response.status_code == 200
+    assert response.status_code == 204
 
     # Intentar usar refresh_token revocado
     response = client.post("/api/v1/auth/refresh", json={

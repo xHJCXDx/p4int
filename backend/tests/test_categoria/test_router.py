@@ -110,8 +110,8 @@ def test_update_categoria_no_existente(admin_client):
     response = admin_client.put("/api/v1/categorias/999", json=payload)
     # Router retorna error_response(404) pero sin status_code=404 explícito, FastAPI retorna 200
     data = response.json()
-    assert data["success"] is False
-    assert "no encontrada" in data["message"].lower()
+    assert data["code"] == "NOT_FOUND"
+    assert "no encontrada" in data["detail"].lower()
 
 
 def test_delete_categoria_sin_auth(client, session):
@@ -141,8 +141,8 @@ def test_delete_categoria_no_existente(admin_client):
     """DELETE a categoría inexistente debe retornar error."""
     response = admin_client.delete("/api/v1/categorias/999")
     data = response.json()
-    assert data["success"] is False
-    assert "no encontrada" in data["message"].lower()
+    assert data["code"] == "NOT_FOUND"
+    assert "no encontrada" in data["detail"].lower()
 
 
 def test_get_categorias_filter_por_parent(client, session):

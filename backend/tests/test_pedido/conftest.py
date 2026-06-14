@@ -49,7 +49,7 @@ def usuario_client_fixture(session: Session):
     client_user = Usuario(
         nombre="Client User",
         email="client@test.com",
-        password_hash=hash_password("pass123")
+        password_hash=hash_password("pass1234")
     )
     session.add(client_user)
     session.flush()
