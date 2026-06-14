@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import List, Optional
 from datetime import datetime
 from app.modules.categorias.model import CategoriaBase
 
@@ -18,3 +18,11 @@ class CategoriaUpdate(CategoriaBase):
     descripcion: Optional[str] = None
     imagen_url: Optional[str] = None
     parent_id: Optional[int] = None
+
+class CategoriaWithChildren(CategoriaBase):
+    """Response schema for GET /categorias/{id} — includes direct children."""
+    id: int
+    parent_id: Optional[int] = None
+    created_at: datetime
+    updated_at: datetime
+    children: List[CategoriaRead] = []
