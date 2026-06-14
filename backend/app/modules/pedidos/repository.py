@@ -1,5 +1,5 @@
 from typing import List, Optional, Tuple
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlmodel import Session, select, func
 from sqlalchemy.orm import selectinload
 from app.core.repository import BaseRepository
@@ -46,25 +46,27 @@ class PedidoRepository(BaseRepository[Pedido]):
 
     def get_by_id(self, pedido_id: int) -> Optional[Pedido]:
         """Get pedido by ID (returns None if soft-deleted)"""
-        pedido = self.session.get(Pedido, pedido_id)
-        if pedido and pedido.deleted_at is not None:
-            return None
-        return pedido
+        statement = (
+            select(Pedido)
+            .where(Pedido.id == pedido_id, Pedido.deleted_at.is_(None))
+            .options(selectinload(Pedido.detalles))
+        )
+        return self.session.exec(statement).first()
 
     def update(self, db_pedido: Pedido, pedido_data: dict) -> Pedido:
         """Update a pedido con timestamp automático."""
-        pedido_data["updated_at"] = datetime.utcnow()
+        pedido_data["updated_at"] = datetime.now(timezone.utc)
         return super().update(db_pedido, pedido_data)
 
     def delete(self, db_pedido: Pedido) -> None:
         """Soft delete a pedido"""
-        db_pedido.deleted_at = datetime.utcnow()
+        db_pedido.deleted_at = datetime.now(timezone.utc)
         self.session.add(db_pedido)
 
     def update_estado(self, db_pedido: Pedido, nuevo_estado: str) -> Pedido:
         """Update pedido estado"""
         db_pedido.estado_codigo = nuevo_estado
-        db_pedido.updated_at = datetime.utcnow()
+        db_pedido.updated_at = datetime.now(timezone.utc)
         self.session.add(db_pedido)
         return db_pedido
 
@@ -97,7 +99,11 @@ class HistorialEstadoPedidoRepository(BaseRepository[HistorialEstadoPedido]):
 
     def get_by_pedido(self, pedido_id: int) -> List[HistorialEstadoPedido]:
         """Get all historial entries for a pedido"""
-        statement = select(HistorialEstadoPedido).where(HistorialEstadoPedido.pedido_id == pedido_id)
+        statement = (
+            select(HistorialEstadoPedido)
+            .where(HistorialEstadoPedido.pedido_id == pedido_id)
+            .order_by(HistorialEstadoPedido.created_at.asc())
+        )
         return self.session.exec(statement).all()
 
     def update(self, *args, **kwargs):

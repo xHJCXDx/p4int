@@ -1,6 +1,6 @@
 from typing import List, Optional, Tuple
 from decimal import Decimal
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlmodel import Session
 from app.modules.pedidos.model import Pedido, DetallePedido, HistorialEstadoPedido
 from app.modules.pedidos.schema import PedidoCreate, PedidoCreateFromCheckout, PedidoUpdate, DetallePedidoCreate
@@ -9,6 +9,7 @@ from app.core.constants import TRANSICIONES_PERMITIDAS, ACCIONES_A_ESTADOS
 from app.modules.productos.model import Producto, ProductoIngredienteLink
 from app.modules.ingredientes.model import Ingrediente
 from app.modules.usuarios.model import Usuario
+from app.core.response import BusinessRuleError
 
 
 def is_client_only(user: Usuario) -> bool:
@@ -113,19 +114,27 @@ def create_pedido_from_checkout(session: Session, checkout_data: PedidoCreateFro
     Valida stock de ingredientes, calcula totales, crea detalles con snapshot,
     y descuenta stock de los ingredientes.
     """
-    if not checkout_data.linea_ventas:
+    if not checkout_data.items:
         raise ValueError("El pedido debe tener al menos un producto")
 
     with PedidoUnitOfWork(session) as uow:
         # Validar stock de ingredientes y calcular subtotal
-        subtotal = 0.0
+        subtotal = Decimal("0")
         productos_info = []
         consumo_ingredientes: dict[int, Decimal] = {}
 
-        for linea in checkout_data.linea_ventas:
+        for linea in checkout_data.items:
             producto = uow.productos.get_by_id(linea.producto_id)
             if not producto:
                 raise ValueError(f"Producto {linea.producto_id} no existe o fue eliminado")
+
+            # S4.1 — rechazar productos no disponibles
+            if not producto.disponible:
+                raise BusinessRuleError(
+                    detail=f"El producto '{producto.nombre}' no está disponible en este momento",
+                    code="PRODUCTO_NO_DISPONIBLE",
+                    status_code=400,
+                )
 
             links = uow.productos.get_ingrediente_links(producto.id)
 
@@ -135,22 +144,23 @@ def create_pedido_from_checkout(session: Session, checkout_data: PedidoCreateFro
                     consumo_ingredientes.get(link.ingrediente_id, Decimal("0")) + total_necesario
                 )
 
-            linea_subtotal = producto.precio * linea.cantidad
+            linea_subtotal = producto.precio_base * linea.cantidad
             subtotal += linea_subtotal
-            productos_info.append((producto, linea.cantidad, linea_subtotal))
+            # S4.2 — capturar personalizacion (IDs de ingredientes a remover)
+            productos_info.append((producto, linea.cantidad, linea_subtotal, linea.personalizacion))
 
         # Validar stock suficiente de cada ingrediente
         for ing_id, cantidad_necesaria in consumo_ingredientes.items():
             ingrediente = uow.ingredientes.get_by_id(ing_id)
             if not ingrediente:
                 raise ValueError(f"Ingrediente {ing_id} no existe o fue eliminado")
-            if ingrediente.stock < cantidad_necesaria:
+            if ingrediente.stock_cantidad < cantidad_necesaria:
                 raise ValueError(
                     f"Stock insuficiente de ingrediente '{ingrediente.nombre}': "
-                    f"disponible {ingrediente.stock}, necesario {cantidad_necesaria}"
+                    f"disponible {ingrediente.stock_cantidad}, necesario {cantidad_necesaria}"
                 )
 
-        costo_envio = 50.0
+        costo_envio = Decimal("50.0")
         total = subtotal + costo_envio
 
         pedido = Pedido(
@@ -160,7 +170,7 @@ def create_pedido_from_checkout(session: Session, checkout_data: PedidoCreateFro
             forma_pago_codigo=checkout_data.forma_pago_codigo,
             notas=checkout_data.notas,
             subtotal=subtotal,
-            descuento=0.0,
+            descuento=Decimal("0"),
             costo_envio=costo_envio,
             total=total,
         )
@@ -168,14 +178,16 @@ def create_pedido_from_checkout(session: Session, checkout_data: PedidoCreateFro
         uow.pedidos.flush()
 
         # Crear detalles con snapshot
-        for producto, cantidad, linea_subtotal in productos_info:
+        for producto, cantidad, linea_subtotal, personalizacion in productos_info:
             detalle = DetallePedido(
                 pedido_id=pedido.id,
                 producto_id=producto.id,
                 cantidad=cantidad,
                 nombre_snapshot=producto.nombre,
-                precio_snapshot=producto.precio,
+                precio_snapshot=producto.precio_base,
                 subtotal_snap=linea_subtotal,
+                # S4.2 — almacenar IDs de ingredientes removidos por el cliente
+                personalizacion=personalizacion,
             )
             uow.detalles.create(detalle)
 
@@ -183,7 +195,7 @@ def create_pedido_from_checkout(session: Session, checkout_data: PedidoCreateFro
         for ing_id, cantidad_necesaria in consumo_ingredientes.items():
             ingrediente = uow.ingredientes.get_by_id(ing_id)
             uow.ingredientes.update(ingrediente, {
-                "stock": ingrediente.stock - cantidad_necesaria
+                "stock_cantidad": ingrediente.stock_cantidad - cantidad_necesaria
             })
 
         # Historial inicial
@@ -195,6 +207,8 @@ def create_pedido_from_checkout(session: Session, checkout_data: PedidoCreateFro
         )
         uow.historial.create(historial)
         uow.pedidos.refresh(pedido)
+
+    _notify_estado_change(pedido, None, "PENDIENTE", usuario_id=usuario_id, event="pedido_creado")
     return pedido
 
 
@@ -257,27 +271,42 @@ def transition_estado(
         uow.historial.create(historial)
         uow.pedidos.refresh(pedido)
 
-    _notify_estado_change(pedido, estado_actual, nuevo_estado)
+    event_name = "pedido_cancelado" if nuevo_estado == "CANCELADO" else "estado_cambiado"
+    _notify_estado_change(pedido, estado_actual, nuevo_estado, usuario_id=usuario_id, motivo=motivo, event=event_name)
     return pedido
 
 
-def _notify_estado_change(pedido, estado_desde: str, estado_hacia: str):
-    """Notifica cambio de estado via WebSocket (fire-and-forget)."""
+def _notify_estado_change(
+    pedido,
+    estado_desde: Optional[str],
+    estado_hacia: str,
+    usuario_id: Optional[int] = None,
+    motivo: Optional[str] = None,
+    event: str = "estado_cambiado",
+):
+    """Notifica cambio de estado via WebSocket (fire-and-forget).
+
+    Emite en el canal pedido:{id} y en el canal admin.
+    Debe llamarse FUERA del bloque UoW (después del commit).
+    """
     import asyncio
     from app.core.ws_manager import ws_manager
 
     message = {
-        "type": "pedido_estado",
+        "event": event,
         "pedido_id": pedido.id,
-        "estado_desde": estado_desde,
-        "estado_hacia": estado_hacia,
+        "estado_anterior": estado_desde,
+        "estado_nuevo": estado_hacia,
+        "usuario_id": usuario_id,
+        "motivo": motivo,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
     }
     try:
         loop = asyncio.get_event_loop()
         if loop.is_running():
-            loop.create_task(ws_manager.send_to_user(pedido.usuario_id, message))
+            loop.create_task(ws_manager.broadcast_pedido(pedido.id, message))
         else:
-            loop.run_until_complete(ws_manager.send_to_user(pedido.usuario_id, message))
+            loop.run_until_complete(ws_manager.broadcast_pedido(pedido.id, message))
     except RuntimeError:
         pass
 
@@ -299,9 +328,18 @@ def cancel_pedido(session: Session, pedido: Pedido, current_user: Usuario, motiv
     """
     Cancela un pedido propio del cliente.
     Solo permite cancelar desde PENDIENTE o CONFIRMADO.
+    S4.3: si el pedido está EN_PREP, solo ADMIN o PEDIDOS pueden cancelar.
     """
-    if pedido.usuario_id != current_user.id:
+    if pedido.usuario_id != current_user.id and is_client_only(current_user):
         raise PermissionError("Solo podés cancelar tus propios pedidos")
+
+    # S4.3 — EN_PREP requiere ADMIN o PEDIDOS; el cliente recibe 403
+    if pedido.estado_codigo == "EN_PREP" and is_client_only(current_user):
+        raise BusinessRuleError(
+            detail="Solo ADMIN o PEDIDOS pueden cancelar pedidos en preparación",
+            code="FORBIDDEN",
+            status_code=403,
+        )
 
     allowed = TRANSICIONES_PERMITIDAS.get(pedido.estado_codigo, [])
     if "CANCELADO" not in allowed:

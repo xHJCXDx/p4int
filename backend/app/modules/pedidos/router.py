@@ -1,15 +1,22 @@
 from typing import Optional
 from fastapi import APIRouter, Depends, status, Query
-from sqlmodel import Session
+from sqlmodel import Session, SQLModel
 from app.core.database import get_session
-from app.core.response import success_response, paginated_response, error_response, ApiResponse
+from app.core.response import success_response, paginated_response, error_response, ApiResponse, BusinessRuleError
 from app.core.security import get_current_user, require_roles
+from app.core.constants import RolCode
 from app.modules.pedidos.schema import (
-    PedidoCreateFromCheckout, PedidoRead,
-    AvanzarEstadoRequest, HistorialEstadoPedidoRead,
+    PedidoCreateFromCheckout, PedidoRead, PedidoDetail,
+    AvanzarEstadoRequest, HistorialEstadoPedidoRead, DetallePedidoRead,
 )
+from app.modules.pagos.schema import PagoRead
 from app.modules.usuarios.model import Usuario
 from app.modules.pedidos import service
+from app.modules.pagos import service as pagos_service
+
+
+class CancelPedidoRequest(SQLModel):
+    motivo: Optional[str] = None
 
 router = APIRouter(prefix="/api/v1/pedidos", tags=["Pedidos"])
 
@@ -42,14 +49,25 @@ def read_pedido(
     """Detalle completo con líneas, trazabilidad y pago."""
     try:
         pedido = service.get_pedido_with_permission(session, pedido_id, current_user)
+        detalles = service.get_detalles_by_pedido(session, pedido_id)
+        historial = service.get_historial(session, pedido_id)
+        pagos = pagos_service.get_pagos_by_pedido(session, pedido_id)
+        pago = PagoRead.model_validate(pagos[0]) if pagos else None
+
+        detail = PedidoDetail(
+            **pedido.model_dump(),
+            items=[DetallePedidoRead.model_validate(d) for d in detalles],
+            historial=[HistorialEstadoPedidoRead.model_validate(h) for h in historial],
+            pago=pago,
+        )
         return success_response(
-            data=PedidoRead.model_validate(pedido),
+            data=detail,
             message="Pedido obtenido exitosamente",
         )
     except PermissionError as e:
-        return error_response(message=str(e), status_code=403)
+        return error_response(detail=str(e), status_code=403, code="FORBIDDEN")
     except ValueError as e:
-        return error_response(message=str(e), status_code=404)
+        return error_response(detail=str(e), status_code=404, code="NOT_FOUND")
 
 
 @router.post("/", status_code=status.HTTP_201_CREATED)
@@ -66,11 +84,13 @@ def create_pedido(
             message="Pedido creado exitosamente",
             status_code=201,
         )
+    except BusinessRuleError as e:
+        return error_response(detail=e.detail, status_code=e.status_code, code=e.code, field=e.field)
     except ValueError as e:
-        return error_response(message=str(e), status_code=400)
+        return error_response(detail=str(e), status_code=400, code="VALIDATION_ERROR")
 
 
-@router.patch("/{pedido_id}/estado", dependencies=[Depends(require_roles("ADMIN", "PEDIDOS"))])
+@router.patch("/{pedido_id}/estado", dependencies=[Depends(require_roles(RolCode.ADMIN, RolCode.PEDIDOS))])
 def avanzar_estado(
     pedido_id: int,
     body: AvanzarEstadoRequest,
@@ -81,7 +101,7 @@ def avanzar_estado(
     try:
         pedido = service.get_pedido_by_id(session, pedido_id)
         if not pedido:
-            return error_response(message="Pedido no encontrado", status_code=404)
+            return error_response(detail="Pedido no encontrado", status_code=404, code="NOT_FOUND")
 
         pedido = service.transition_estado(
             session,
@@ -95,7 +115,7 @@ def avanzar_estado(
             message=f"Pedido transicionado a {body.nuevo_estado}",
         )
     except ValueError as e:
-        return error_response(message=str(e), status_code=400)
+        return error_response(detail=str(e), status_code=400, code="INVALID_TRANSITION")
 
 
 @router.get("/{pedido_id}/historial")
@@ -113,15 +133,15 @@ def read_historial(
             message="Historial obtenido",
         )
     except PermissionError as e:
-        return error_response(message=str(e), status_code=403)
+        return error_response(detail=str(e), status_code=403, code="FORBIDDEN")
     except ValueError as e:
-        return error_response(message=str(e), status_code=404)
+        return error_response(detail=str(e), status_code=404, code="NOT_FOUND")
 
 
 @router.delete("/{pedido_id}")
 def cancel_pedido(
     pedido_id: int,
-    motivo: Optional[str] = Query(None, description="Motivo de cancelación (obligatorio RN-05)"),
+    body: CancelPedidoRequest,
     session: Session = Depends(get_session),
     current_user: Usuario = Depends(get_current_user),
 ) -> ApiResponse:
@@ -129,14 +149,16 @@ def cancel_pedido(
     try:
         pedido = service.get_pedido_by_id(session, pedido_id)
         if not pedido:
-            return error_response(message="Pedido no encontrado", status_code=404)
+            return error_response(detail="Pedido no encontrado", status_code=404, code="NOT_FOUND")
 
-        cancelled = service.cancel_pedido(session, pedido, current_user, motivo)
+        cancelled = service.cancel_pedido(session, pedido, current_user, body.motivo)
         return success_response(
             data=PedidoRead.model_validate(cancelled),
             message="Pedido cancelado",
         )
+    except BusinessRuleError as e:
+        return error_response(detail=e.detail, status_code=e.status_code, code=e.code, field=e.field)
     except PermissionError as e:
-        return error_response(message=str(e), status_code=403)
+        return error_response(detail=str(e), status_code=403, code="FORBIDDEN")
     except ValueError as e:
-        return error_response(message=str(e), status_code=400)
+        return error_response(detail=str(e), status_code=400, code="CANCEL_NOT_ALLOWED")
