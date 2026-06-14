@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Request, status
+from fastapi import APIRouter, Depends, Request, Response, status
 from sqlmodel import Session
 
 from app.core.database import get_session
@@ -31,7 +31,7 @@ def register(
             status_code=201
         )
     except ValueError as e:
-        return error_response(message=str(e), status_code=400)
+        return error_response(detail=str(e), status_code=409, code="DUPLICATE_EMAIL", field="email")
 
 
 @router.post("/login")
@@ -45,17 +45,15 @@ def login(
 
     if not user:
         return error_response(
-            message="Email o contraseña inválidos",
+            detail="Email o contraseña inválidos",
             status_code=status.HTTP_401_UNAUTHORIZED,
+            code="INVALID_CREDENTIALS",
         )
 
     tokens = service.create_login_tokens(session, user)
 
     return success_response(
-        data={
-            "user": usuario_to_read(user).model_dump(),
-            "tokens": tokens.model_dump(),
-        },
+        data=tokens.model_dump(),
         message="Autenticación exitosa",
     )
 
@@ -81,7 +79,7 @@ def update_me(
             message="Perfil actualizado exitosamente"
         )
     except ValueError as e:
-        return error_response(message=str(e), status_code=400)
+        return error_response(detail=str(e), status_code=400, code="VALIDATION_ERROR")
 
 
 @router.put("/me/password")
@@ -92,7 +90,7 @@ def change_password(
 ) -> ApiResponse:
     error = service.change_password(session, current_user, data.current_password, data.new_password)
     if error:
-        return error_response(message=error, status_code=400)
+        return error_response(detail=error, status_code=400, code="INVALID_PASSWORD", field="current_password")
     return success_response(message="Contraseña actualizada exitosamente")
 
 
@@ -109,15 +107,15 @@ def refresh_token(
             message="Token renovado exitosamente",
         )
     except (ValueError, Exception):
-        return error_response(message="Refresh token inválido o expirado", status_code=401)
+        return error_response(detail="Refresh token inválido o expirado", status_code=401, code="INVALID_TOKEN")
 
 
-@router.post("/logout")
+@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
 def logout(
     body: RefreshTokenRequest,
     session: Session = Depends(get_session),
     current_user: Usuario = Depends(get_current_user),
-) -> ApiResponse:
+):
     """Cierra la sesión. Revoca el refresh token."""
     service.revoke_refresh_token(session, body.refresh_token)
-    return success_response(message="Sesión cerrada exitosamente")
+    return Response(status_code=204)

@@ -1,6 +1,6 @@
 import hashlib
 from typing import Optional
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from sqlmodel import Session
 from app.modules.usuarios.model import Usuario, RefreshToken
 from app.modules.usuarios.schema import UsuarioCreate, UsuarioUpdate, TokenResponse
@@ -66,7 +66,7 @@ def create_login_tokens(session: Session, user: Usuario) -> TokenResponse:
         rt = RefreshToken(
             usuario_id=user.id,
             token_hash=_hash_token(refresh),
-            expires_at=datetime.utcnow() + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS),
+            expires_at=datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS),
         )
         uow.usuarios.create_refresh_token(rt)
 
@@ -107,7 +107,7 @@ def refresh_from_token(session: Session, refresh_token_str: str) -> TokenRespons
         rt = RefreshToken(
             usuario_id=int(user_id),
             token_hash=_hash_token(new_refresh),
-            expires_at=datetime.utcnow() + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS),
+            expires_at=datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS),
         )
         uow.usuarios.create_refresh_token(rt)
 
@@ -140,8 +140,8 @@ def change_password(session: Session, user: Usuario, current_password: str, new_
     if not verify_password(current_password, user.password_hash):
         return "Contraseña actual incorrecta"
 
-    if len(new_password) < 6:
-        return "La nueva contraseña debe tener al menos 6 caracteres"
+    if len(new_password) < 8:
+        return "La nueva contraseña debe tener al menos 8 caracteres"
 
     with UsuarioUnitOfWork(session) as uow:
         uow.usuarios.update(user, {"password_hash": hash_password(new_password)})

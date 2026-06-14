@@ -1,7 +1,7 @@
 """Seguridad: JWT, hash de contraseñas, y dependencies de autenticación."""
 
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional, List
 import jwt
 import bcrypt
@@ -41,9 +41,9 @@ def create_access_token(data: dict, roles: Optional[List[str]] = None, expires_d
         to_encode["roles"] = roles
     to_encode["type"] = "access"
     if expires_delta:
-        expire = datetime.utcnow() + expires_delta
+        expire = datetime.now(timezone.utc) + expires_delta
     else:
-        expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
 
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
@@ -58,7 +58,7 @@ def create_refresh_token(data: dict, roles: Optional[List[str]] = None) -> str:
     if roles is not None:
         to_encode["roles"] = roles
     to_encode["type"] = "refresh"
-    expire = datetime.utcnow() + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+    expire = datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
 

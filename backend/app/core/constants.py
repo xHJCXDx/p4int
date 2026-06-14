@@ -1,5 +1,15 @@
 """Catálogos y constantes globales del sistema."""
 
+from enum import Enum
+
+
+class RolCode(str, Enum):
+    ADMIN = "ADMIN"
+    STOCK = "STOCK"
+    PEDIDOS = "PEDIDOS"
+    CLIENT = "CLIENT"
+
+
 # Unidades de Medida (Seed obligatorio)
 UNIDADES_MEDIDA = [
     {"codigo": "kg", "nombre": "kilogramo", "simbolo": "kg", "tipo": "masa"},
