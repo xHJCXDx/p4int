@@ -4,12 +4,13 @@ from sqlmodel import Session
 from app.core.database import get_session
 from app.core.response import success_response, ApiResponse
 from app.core.security import require_roles
+from app.core.constants import RolCode
 from app.modules.estadisticas import service
 
 router = APIRouter(
     prefix="/api/v1/estadisticas",
     tags=["Estadisticas"],
-    dependencies=[Depends(require_roles("ADMIN"))],
+    dependencies=[Depends(require_roles(RolCode.ADMIN))],
 )
 
 

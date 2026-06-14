@@ -2,7 +2,7 @@ from typing import List
 from decimal import Decimal, ROUND_HALF_UP
 from datetime import date
 from sqlmodel import Session
-from app.modules.estadisticas.repository import EstadisticasRepository
+from app.modules.estadisticas.unit_of_work import EstadisticasUnitOfWork
 from app.modules.estadisticas.schemas import (
     ResumenResponse,
     VentasPeriodoItem,
@@ -21,8 +21,8 @@ def _to_decimal(value) -> Decimal:
 
 
 def get_resumen(session: Session) -> ResumenResponse:
-    repo = EstadisticasRepository(session)
-    kpis = repo.get_resumen_kpis()
+    with EstadisticasUnitOfWork(session) as uow:
+        kpis = uow.estadisticas.get_resumen_kpis()
     return ResumenResponse(
         ventas_hoy=_to_decimal(kpis["ventas_hoy"]),
         ticket_promedio=_to_decimal(kpis["ticket_promedio"]),
@@ -37,8 +37,8 @@ def get_ventas(
     hasta: date,
     agrupacion: str = "day",
 ) -> List[VentasPeriodoItem]:
-    repo = EstadisticasRepository(session)
-    rows = repo.get_ventas_periodo(desde, hasta, agrupacion)
+    with EstadisticasUnitOfWork(session) as uow:
+        rows = uow.estadisticas.get_ventas_periodo(desde, hasta, agrupacion)
     return [
         VentasPeriodoItem(
             periodo=str(row.periodo.date()) if hasattr(row.periodo, "date") else str(row.periodo),
@@ -53,8 +53,8 @@ def get_productos_top(
     session: Session,
     limit: int = 10,
 ) -> List[ProductoTopItem]:
-    repo = EstadisticasRepository(session)
-    rows = repo.get_productos_top(limit)
+    with EstadisticasUnitOfWork(session) as uow:
+        rows = uow.estadisticas.get_productos_top(limit)
     return [
         ProductoTopItem(
             producto_id=row.producto_id,
@@ -67,8 +67,8 @@ def get_productos_top(
 
 
 def get_pedidos_por_estado(session: Session) -> List[PedidosEstadoItem]:
-    repo = EstadisticasRepository(session)
-    rows = repo.get_pedidos_por_estado()
+    with EstadisticasUnitOfWork(session) as uow:
+        rows = uow.estadisticas.get_pedidos_por_estado()
     return [
         PedidosEstadoItem(
             estado_codigo=row.estado_codigo,
@@ -83,8 +83,8 @@ def get_ingresos(
     desde: date,
     hasta: date,
 ) -> List[IngresosFormaPagoItem]:
-    repo = EstadisticasRepository(session)
-    rows = repo.get_ingresos_por_forma_pago(desde, hasta)
+    with EstadisticasUnitOfWork(session) as uow:
+        rows = uow.estadisticas.get_ingresos_por_forma_pago(desde, hasta)
     return [
         IngresosFormaPagoItem(
             forma_pago_codigo=row.forma_pago_codigo,
