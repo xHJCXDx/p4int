@@ -1,7 +1,7 @@
 """Repository para DireccionEntrega."""
 
 from typing import List, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlmodel import Session, select, func
 from app.core.repository import BaseRepository
 from app.modules.direcciones.model import DireccionEntrega
@@ -43,5 +43,5 @@ class DireccionEntregaRepository(BaseRepository[DireccionEntrega]):
 
     def delete(self, db_direccion: DireccionEntrega) -> None:
         """Soft delete de una dirección."""
-        db_direccion.deleted_at = datetime.utcnow()
+        db_direccion.deleted_at = datetime.now(timezone.utc)
         self.session.add(db_direccion)

@@ -3,6 +3,7 @@ from sqlmodel import Session
 from app.core.database import get_session
 from app.core.response import success_response, error_response, ApiResponse
 from app.core.security import require_roles
+from app.core.constants import RolCode
 from app.modules.catalogo.schema import UnidadMedidaCreate
 from app.modules.catalogo import service
 
@@ -19,12 +20,12 @@ def read_unidades_medida(session: Session = Depends(get_session)) -> ApiResponse
     )
 
 
-@router.post("/unidades-medida", status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_roles("ADMIN", "STOCK"))])
+@router.post("/unidades-medida", status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_roles(RolCode.ADMIN, RolCode.STOCK))])
 def create_unidad_medida(data: UnidadMedidaCreate, session: Session = Depends(get_session)) -> ApiResponse:
     """Crear unidad de medida (ADMIN o STOCK)."""
     nueva = service.create_unidad_medida(session, data)
     if not nueva:
-        return error_response(message=f"La unidad '{data.codigo}' ya existe", status_code=400)
+        return error_response(detail=f"La unidad '{data.codigo}' ya existe", status_code=400, code="DUPLICATE_CODIGO", field="codigo")
     return success_response(
         data={"codigo": nueva.codigo, "nombre": nueva.nombre, "simbolo": nueva.simbolo, "tipo": nueva.tipo},
         message="Unidad de medida creada",
@@ -32,13 +33,13 @@ def create_unidad_medida(data: UnidadMedidaCreate, session: Session = Depends(ge
     )
 
 
-@router.delete("/unidades-medida/{codigo}", dependencies=[Depends(require_roles("ADMIN", "STOCK"))])
+@router.delete("/unidades-medida/{codigo}", dependencies=[Depends(require_roles(RolCode.ADMIN, RolCode.STOCK))])
 def delete_unidad_medida(codigo: str, session: Session = Depends(get_session)) -> ApiResponse:
     """Eliminar unidad de medida (ADMIN o STOCK)."""
     error = service.delete_unidad_medida(session, codigo)
     if error:
         status_code = 404 if "no encontrada" in error else 400
-        return error_response(message=error, status_code=status_code)
+        return error_response(detail=error, status_code=status_code, code="NOT_FOUND" if status_code == 404 else "VALIDATION_ERROR")
     return success_response(message="Unidad de medida eliminada")
 
 

@@ -8,7 +8,7 @@ from app.modules.productos.model import ProductoBase
 class IngredienteEnReceta(SQLModel):
     ingrediente_id: int
     cantidad: Decimal = Decimal("1")
-    unidad_medida_codigo: str = "u"
+    unidad_medida_id: int
     es_removible: bool = False
 
 
@@ -27,7 +27,7 @@ class IngredienteInProducto(SQLModel):
     nombre: str
     es_alergeno: bool
     cantidad: Decimal
-    unidad_medida_codigo: str
+    unidad_medida_id: int
     es_removible: bool
 
 
@@ -43,10 +43,10 @@ class ProductoRead(ProductoBase):
 class ProductoUpdate(ProductoBase):
     nombre: Optional[str] = None
     descripcion: Optional[str] = None
-    precio: Optional[float] = None
+    precio_base: Optional[Decimal] = None
     imagenes_url: Optional[List[str]] = None
-    unidad_venta_codigo: Optional[str] = None
-    stock: Optional[int] = None
+    unidad_venta_id: Optional[int] = None
+    stock_cantidad: Optional[int] = None
     disponible: Optional[bool] = None
     categoria_ids: Optional[List[int]] = None
     ingredientes: Optional[List[IngredienteEnReceta]] = None

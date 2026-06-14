@@ -1,10 +1,11 @@
 from typing import Dict
 from decimal import Decimal
-from sqlmodel import Session
+from sqlmodel import Session, select
 from app.modules.productos.model import Producto
 from app.modules.productos.unit_of_work import ProductoUnitOfWork
 from app.modules.ingredientes.model import Ingrediente
 from app.modules.categorias.model import Categoria
+from app.modules.catalogo.model import UnidadMedida
 
 
 def seed_productos(session: Session, categorias: Dict[str, Categoria], ingredientes: Dict[str, Ingrediente]) -> None:
@@ -13,8 +14,8 @@ def seed_productos(session: Session, categorias: Dict[str, Categoria], ingredien
         {
             "nombre": "Pizza Margherita",
             "descripcion": "Pizza clásica italiana con queso y tomate",
-            "precio": 250.0,
-            "stock": 50,
+            "precio_base": 250.0,
+            "stock_cantidad": 50,
             "disponible": True,
             "categoria_id": categorias["Pizzas"].id,
             "ingredientes": [
@@ -26,8 +27,8 @@ def seed_productos(session: Session, categorias: Dict[str, Categoria], ingredien
         {
             "nombre": "Pizza de Carne",
             "descripcion": "Pizza con carne molida, cebolla y ajo",
-            "precio": 290.0,
-            "stock": 30,
+            "precio_base": 290.0,
+            "stock_cantidad": 30,
             "disponible": True,
             "categoria_id": categorias["Pizzas"].id,
             "ingredientes": [
@@ -40,8 +41,8 @@ def seed_productos(session: Session, categorias: Dict[str, Categoria], ingredien
         {
             "nombre": "Empanadas de Carne",
             "descripcion": "6 empanadas de carne casera",
-            "precio": 120.0,
-            "stock": 40,
+            "precio_base": 120.0,
+            "stock_cantidad": 40,
             "disponible": True,
             "categoria_id": categorias["Empanadas"].id,
             "ingredientes": [
@@ -53,8 +54,8 @@ def seed_productos(session: Session, categorias: Dict[str, Categoria], ingredien
         {
             "nombre": "Empanadas de Queso",
             "descripcion": "6 empanadas de queso y cebolla",
-            "precio": 100.0,
-            "stock": 40,
+            "precio_base": 100.0,
+            "stock_cantidad": 40,
             "disponible": True,
             "categoria_id": categorias["Empanadas"].id,
             "ingredientes": [
@@ -66,8 +67,8 @@ def seed_productos(session: Session, categorias: Dict[str, Categoria], ingredien
         {
             "nombre": "Coca-Cola 2L",
             "descripcion": "Bebida gaseosa clásica",
-            "precio": 65.0,
-            "stock": 100,
+            "precio_base": 65.0,
+            "stock_cantidad": 100,
             "disponible": True,
             "unidad_venta_codigo": "u",
             "categoria_id": categorias["Bebidas"].id,
@@ -78,8 +79,8 @@ def seed_productos(session: Session, categorias: Dict[str, Categoria], ingredien
         {
             "nombre": "Jugo Natural Naranja",
             "descripcion": "Jugo fresco de naranja recién exprimido",
-            "precio": 45.0,
-            "stock": 25,
+            "precio_base": 45.0,
+            "stock_cantidad": 25,
             "disponible": True,
             "unidad_venta_codigo": "l",
             "categoria_id": categorias["Bebidas"].id,
@@ -90,8 +91,8 @@ def seed_productos(session: Session, categorias: Dict[str, Categoria], ingredien
         {
             "nombre": "Pizza de Chocolate",
             "descripcion": "Pizza dulce de chocolate con frutos secos",
-            "precio": 200.0,
-            "stock": 0,
+            "precio_base": 200.0,
+            "stock_cantidad": 0,
             "disponible": False,
             "categoria_id": categorias["Pizzas Dulces"].id,
             "ingredientes": [
@@ -107,8 +108,14 @@ def seed_productos(session: Session, categorias: Dict[str, Categoria], ingredien
             if not existing:
                 cat_id = prod_data.pop("categoria_id")
                 ingredientes_prod = prod_data.pop("ingredientes", [])
+                unidad_venta_codigo = prod_data.pop("unidad_venta_codigo", None)
 
-                prod = Producto(**prod_data)
+                unidad_venta_id = None
+                if unidad_venta_codigo:
+                    um = session.exec(select(UnidadMedida).where(UnidadMedida.codigo == unidad_venta_codigo)).first()
+                    unidad_venta_id = um.id if um else None
+
+                prod = Producto(**prod_data, unidad_venta_id=unidad_venta_id)
                 uow.productos.create(prod)
                 uow.productos.flush()
 
@@ -116,9 +123,10 @@ def seed_productos(session: Session, categorias: Dict[str, Categoria], ingredien
 
                 for ing_info in ingredientes_prod:
                     ing = ingredientes[ing_info["ref"]]
+                    um = session.exec(select(UnidadMedida).where(UnidadMedida.codigo == ing_info["unidad"])).first()
                     uow.productos.create_ingrediente_link(
                         prod.id, ing.id,
                         cantidad=ing_info["cantidad"],
-                        unidad_medida_codigo=ing_info["unidad"],
+                        unidad_medida_id=um.id if um else None,
                         es_removible=ing_info["es_removible"],
                     )

@@ -12,7 +12,7 @@ def usuario_to_read(usuario: Usuario) -> UsuarioRead:
         apellido=usuario.apellido,
         email=usuario.email,
         celular=usuario.celular,
-        roles=[{"codigo": r.codigo, "nombre": r.nombre, "descripcion": r.descripcion} for r in usuario.roles],
+        roles=[r.codigo for r in usuario.roles],
         created_at=usuario.created_at.isoformat()
     )
 

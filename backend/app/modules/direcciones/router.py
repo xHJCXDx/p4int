@@ -49,7 +49,7 @@ def crear_direccion(
             status_code=201
         )
     except Exception as e:
-        return error_response(message=f"Error: {str(e)}", status_code=400)
+        return error_response(detail=str(e), status_code=400, code="VALIDATION_ERROR")
 
 
 @router.put("/{direccion_id}")
@@ -68,11 +68,11 @@ def actualizar_direccion(
             message="Dirección actualizada"
         )
     except PermissionError as e:
-        return error_response(message=str(e), status_code=403)
+        return error_response(detail=str(e), status_code=403, code="FORBIDDEN")
     except ValueError as e:
-        return error_response(message=str(e), status_code=404)
+        return error_response(detail=str(e), status_code=404, code="NOT_FOUND")
     except Exception as e:
-        return error_response(message=f"Error: {str(e)}", status_code=400)
+        return error_response(detail=str(e), status_code=400, code="VALIDATION_ERROR")
 
 
 @router.delete("/{direccion_id}")
@@ -87,9 +87,9 @@ def eliminar_direccion(
         service.delete_direccion(session, direccion)
         return success_response(message="Dirección eliminada", status_code=204)
     except PermissionError as e:
-        return error_response(message=str(e), status_code=403)
+        return error_response(detail=str(e), status_code=403, code="FORBIDDEN")
     except ValueError as e:
-        return error_response(message=str(e), status_code=404)
+        return error_response(detail=str(e), status_code=404, code="NOT_FOUND")
 
 
 @router.patch("/{direccion_id}/principal")
@@ -107,8 +107,8 @@ def marcar_principal(
             message="Dirección marcada como principal"
         )
     except PermissionError as e:
-        return error_response(message=str(e), status_code=403)
+        return error_response(detail=str(e), status_code=403, code="FORBIDDEN")
     except ValueError as e:
-        return error_response(message=str(e), status_code=404)
+        return error_response(detail=str(e), status_code=404, code="NOT_FOUND")
     except Exception as e:
-        return error_response(message=f"Error: {str(e)}", status_code=400)
+        return error_response(detail=str(e), status_code=400, code="VALIDATION_ERROR")

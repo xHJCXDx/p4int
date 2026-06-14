@@ -1,5 +1,5 @@
 from typing import List, Optional, Tuple
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlmodel import Session, select, func
 from app.core.repository import BaseRepository
 from app.modules.ingredientes.model import Ingrediente
@@ -35,5 +35,5 @@ class IngredienteRepository(BaseRepository[Ingrediente]):
 
     def delete(self, db_ingrediente: Ingrediente) -> None:
         """Soft delete an ingrediente"""
-        db_ingrediente.deleted_at = datetime.utcnow()
+        db_ingrediente.deleted_at = datetime.now(timezone.utc)
         self.session.add(db_ingrediente)

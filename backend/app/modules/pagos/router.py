@@ -25,9 +25,9 @@ def crear_pago(
             status_code=201,
         )
     except PermissionError as e:
-        return error_response(message=str(e), status_code=403)
+        return error_response(detail=str(e), status_code=403, code="FORBIDDEN")
     except ValueError as e:
-        return error_response(message=str(e), status_code=400)
+        return error_response(detail=str(e), status_code=400, code="VALIDATION_ERROR")
 
 
 @router.post("/webhook")
@@ -38,7 +38,7 @@ async def webhook_mercadopago(request: Request, session: Session = Depends(get_s
         result = service.process_webhook(session, body)
         return {"status": "ok"}
     except ValueError as e:
-        return error_response(message=str(e), status_code=400)
+        return error_response(detail=str(e), status_code=400, code="WEBHOOK_ERROR")
 
 
 @router.get("/{pedido_id}")
@@ -52,12 +52,12 @@ def read_pago_pedido(
         service.verify_pago_read_permission(session, pedido_id, current_user)
         pagos = service.get_pagos_by_pedido(session, pedido_id)
         if not pagos:
-            return error_response(message="No hay pagos para este pedido", status_code=404)
+            return error_response(detail="No hay pagos para este pedido", status_code=404, code="NOT_FOUND")
         return success_response(
             data=PagoRead.model_validate(pagos[0]),
             message="Pago obtenido",
         )
     except PermissionError as e:
-        return error_response(message=str(e), status_code=403)
+        return error_response(detail=str(e), status_code=403, code="FORBIDDEN")
     except ValueError as e:
-        return error_response(message=str(e), status_code=404)
+        return error_response(detail=str(e), status_code=404, code="NOT_FOUND")

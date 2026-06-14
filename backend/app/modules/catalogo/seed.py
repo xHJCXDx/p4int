@@ -8,7 +8,7 @@ def seed_catalogos(session: Session) -> None:
     """Inicializa los catálogos de FormaPago, EstadoPedido y UnidadMedida si no existen."""
     with CatalogoUnitOfWork(session) as uow:
         for um_data in UNIDADES_MEDIDA:
-            existing = uow.unidades_medida.get_by_id(um_data["codigo"])
+            existing = uow.unidades_medida.get_by_codigo(um_data["codigo"])
             if not existing:
                 new_um = UnidadMedida(**um_data)
                 uow.unidades_medida.create(new_um)

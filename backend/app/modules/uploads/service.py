@@ -16,8 +16,8 @@ ALLOWED_TYPES = {"image/jpeg", "image/png", "image/webp"}
 MAX_FILE_SIZE = 5 * 1024 * 1024  # 5 MB
 
 
-def upload_image(file: UploadFile, folder: str = "p4int") -> str:
-    """Sube una imagen a Cloudinary y retorna la URL segura."""
+def upload_image(file: UploadFile, folder: str = "p4int") -> dict:
+    """Sube una imagen a Cloudinary y retorna los campos relevantes del resultado."""
     if file.content_type not in ALLOWED_TYPES:
         raise ValueError(f"Tipo de archivo no permitido: {file.content_type}. Usar JPEG, PNG o WebP.")
 
@@ -29,8 +29,18 @@ def upload_image(file: UploadFile, folder: str = "p4int") -> str:
         contents,
         folder=folder,
         resource_type="image",
+        allowed_formats=["jpg", "jpeg", "png", "webp"],
+        overwrite=False,
+        unique_filename=True,
     )
-    return result["secure_url"]
+    return {
+        "secure_url": result["secure_url"],
+        "public_id": result["public_id"],
+        "width": result["width"],
+        "height": result["height"],
+        "format": result["format"],
+        "resource_type": result["resource_type"],
+    }
 
 
 def delete_image(public_id: str) -> bool:

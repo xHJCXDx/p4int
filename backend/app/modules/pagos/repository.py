@@ -1,5 +1,5 @@
 from typing import List, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlmodel import Session, select
 from app.core.repository import BaseRepository
 from app.modules.pagos.model import Pago
@@ -32,5 +32,5 @@ class PagoRepository(BaseRepository[Pago]):
 
     def update(self, db_pago: Pago, pago_data: dict) -> Pago:
         """Update a pago con timestamp automático."""
-        pago_data["updated_at"] = datetime.utcnow()
+        pago_data["updated_at"] = datetime.now(timezone.utc)
         return super().update(db_pago, pago_data)

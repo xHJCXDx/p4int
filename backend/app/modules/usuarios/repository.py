@@ -1,7 +1,7 @@
 """Repository para Usuario."""
 
 from typing import Optional, List
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlmodel import Session, select, func
 from app.core.repository import BaseRepository
 from app.modules.usuarios.model import Usuario, Rol, UsuarioRolLink, RefreshToken
@@ -71,7 +71,7 @@ class UsuarioRepository(BaseRepository[Usuario]):
 
     def delete(self, usuario: Usuario) -> None:
         """Soft delete de un usuario."""
-        usuario.deleted_at = datetime.utcnow()
+        usuario.deleted_at = datetime.now(timezone.utc)
         self.session.add(usuario)
 
     def create_refresh_token(self, refresh_token: RefreshToken) -> RefreshToken:
@@ -89,5 +89,5 @@ class UsuarioRepository(BaseRepository[Usuario]):
 
     def revoke_refresh_token(self, stored: RefreshToken) -> None:
         """Revoca un refresh token."""
-        stored.revoked_at = datetime.utcnow()
+        stored.revoked_at = datetime.now(timezone.utc)
         self.session.add(stored)

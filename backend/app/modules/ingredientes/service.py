@@ -1,5 +1,5 @@
 from typing import List, Optional, Tuple
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlmodel import Session
 from app.modules.ingredientes.model import Ingrediente
 from app.modules.ingredientes.schema import IngredienteCreate, IngredienteUpdate
@@ -27,7 +27,7 @@ def create(session: Session, ingrediente_data: IngredienteCreate) -> Ingrediente
 def update(session: Session, db_ingrediente: Ingrediente, ingrediente_data: IngredienteUpdate) -> Ingrediente:
     with IngredienteUnitOfWork(session) as uow:
         ingrediente_dict = ingrediente_data.model_dump(exclude_unset=True)
-        ingrediente_dict["updated_at"] = datetime.utcnow()
+        ingrediente_dict["updated_at"] = datetime.now(timezone.utc)
         uow.ingredientes.update(db_ingrediente, ingrediente_dict)
         uow.ingredientes.refresh(db_ingrediente)
     return db_ingrediente

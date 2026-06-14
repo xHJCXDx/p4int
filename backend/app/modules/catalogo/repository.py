@@ -13,14 +13,18 @@ class UnidadMedidaRepository(BaseRepository[UnidadMedida]):
         statement = select(self.model)
         return list(self.session.exec(statement).all())
 
-    def get_by_id(self, codigo: str) -> Optional[UnidadMedida]:
-        return self.session.get(UnidadMedida, codigo)
+    def get_by_id(self, id: int) -> Optional[UnidadMedida]:
+        return self.session.get(UnidadMedida, id)
 
-    def is_in_use(self, codigo: str) -> bool:
+    def get_by_codigo(self, codigo: str) -> Optional[UnidadMedida]:
+        statement = select(UnidadMedida).where(UnidadMedida.codigo == codigo)
+        return self.session.exec(statement).first()
+
+    def is_in_use(self, id: int) -> bool:
         """Verifica si la unidad de medida está siendo usada por algún ingrediente."""
         from app.modules.ingredientes.model import Ingrediente
         result = self.session.exec(
-            select(Ingrediente).where(Ingrediente.unidad_medida_codigo == codigo)
+            select(Ingrediente).where(Ingrediente.unidad_medida_id == id)
         ).first()
         return result is not None
 

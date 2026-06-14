@@ -1,7 +1,7 @@
 """Schemas Pydantic para Usuario y Auth."""
 
 from typing import Optional, List
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 
 
 class RolRead(BaseModel):
@@ -13,17 +13,17 @@ class RolRead(BaseModel):
 
 class UsuarioCreate(BaseModel):
     """Schema para crear un nuevo usuario."""
-    nombre: str
-    apellido: str
+    nombre: str = Field(min_length=2, max_length=80)
+    apellido: str = Field(min_length=2, max_length=80)
     email: EmailStr
-    password: str
+    password: str = Field(min_length=8)
     celular: Optional[str] = None
 
 
 class UsuarioLogin(BaseModel):
     """Schema para login."""
     email: EmailStr
-    password: str
+    password: str = Field(min_length=8)
 
 
 class UsuarioRead(BaseModel):
@@ -33,7 +33,7 @@ class UsuarioRead(BaseModel):
     apellido: str
     email: str
     celular: Optional[str] = None
-    roles: List[RolRead] = []
+    roles: List[str] = []
     created_at: str
 
 

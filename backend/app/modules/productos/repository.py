@@ -1,6 +1,6 @@
 from typing import List, Optional, Tuple
 from decimal import Decimal
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlmodel import Session, select, func
 from sqlalchemy.orm import selectinload
 from app.core.repository import BaseRepository
@@ -92,7 +92,7 @@ class ProductoRepository(BaseRepository[Producto]):
                         producto_id=producto.id,
                         ingrediente_id=ing_data.ingrediente_id,
                         cantidad=ing_data.cantidad,
-                        unidad_medida_codigo=ing_data.unidad_medida_codigo,
+                        unidad_medida_id=ing_data.unidad_medida_id,
                         es_removible=ing_data.es_removible,
                     )
                     self.session.add(link)
@@ -125,7 +125,7 @@ class ProductoRepository(BaseRepository[Producto]):
                         producto_id=db_producto.id,
                         ingrediente_id=ing_data.ingrediente_id,
                         cantidad=ing_data.cantidad,
-                        unidad_medida_codigo=ing_data.unidad_medida_codigo,
+                        unidad_medida_id=ing_data.unidad_medida_id,
                         es_removible=ing_data.es_removible,
                     )
                     self.session.add(link)
@@ -137,13 +137,13 @@ class ProductoRepository(BaseRepository[Producto]):
         link = ProductoCategoriaLink(producto_id=producto_id, categoria_id=categoria_id, es_principal=es_principal)
         self.session.add(link)
 
-    def create_ingrediente_link(self, producto_id: int, ingrediente_id: int, cantidad: Decimal, unidad_medida_codigo: str = "u", es_removible: bool = False) -> None:
+    def create_ingrediente_link(self, producto_id: int, ingrediente_id: int, cantidad: Decimal, unidad_medida_id: int = 1, es_removible: bool = False) -> None:
         """Crea un link producto-ingrediente."""
         link = ProductoIngredienteLink(
             producto_id=producto_id,
             ingrediente_id=ingrediente_id,
             cantidad=cantidad,
-            unidad_medida_codigo=unidad_medida_codigo,
+            unidad_medida_id=unidad_medida_id,
             es_removible=es_removible,
         )
         self.session.add(link)
@@ -157,5 +157,5 @@ class ProductoRepository(BaseRepository[Producto]):
 
     def delete(self, db_producto: Producto) -> None:
         """Soft delete a producto"""
-        db_producto.deleted_at = datetime.utcnow()
+        db_producto.deleted_at = datetime.now(timezone.utc)
         self.session.add(db_producto)

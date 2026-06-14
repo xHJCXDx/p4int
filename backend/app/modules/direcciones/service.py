@@ -1,7 +1,7 @@
 """Service para DireccionEntrega."""
 
 from typing import Tuple, List, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlmodel import Session
 from app.modules.direcciones.model import DireccionEntrega
 from app.modules.direcciones.schema import DireccionCreate, DireccionUpdate
@@ -68,7 +68,7 @@ def update_direccion(session: Session, direccion: DireccionEntrega, data: Direcc
                 uow.direcciones.update(principal_actual, {"es_principal": False})
 
         update_dict = data.model_dump(exclude_unset=True)
-        update_dict["updated_at"] = datetime.utcnow()
+        update_dict["updated_at"] = datetime.now(timezone.utc)
         uow.direcciones.update(direccion, update_dict)
         uow.direcciones.refresh(direccion)
     return direccion

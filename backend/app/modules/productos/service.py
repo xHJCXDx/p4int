@@ -1,5 +1,5 @@
 from typing import List, Optional, Tuple
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlmodel import Session
 from app.modules.productos.model import Producto
 from app.modules.productos.schema import ProductoCreate, ProductoUpdate, ProductoRead, IngredienteInProducto, IngredienteEnReceta
@@ -19,7 +19,7 @@ def _build_producto_read(producto_repo, ingrediente_repo, producto: Producto) ->
                 nombre=ingrediente.nombre,
                 es_alergeno=ingrediente.es_alergeno,
                 cantidad=link.cantidad,
-                unidad_medida_codigo=link.unidad_medida_codigo,
+                unidad_medida_id=link.unidad_medida_id,
                 es_removible=link.es_removible,
             ))
 
@@ -27,10 +27,10 @@ def _build_producto_read(producto_repo, ingrediente_repo, producto: Producto) ->
         id=producto.id,
         nombre=producto.nombre,
         descripcion=producto.descripcion,
-        precio=producto.precio,
+        precio_base=producto.precio_base,
         imagenes_url=producto.imagenes_url,
-        unidad_venta_codigo=producto.unidad_venta_codigo,
-        stock=producto.stock,
+        unidad_venta_id=producto.unidad_venta_id,
+        stock_cantidad=producto.stock_cantidad,
         disponible=producto.disponible,
         created_at=producto.created_at,
         updated_at=producto.updated_at,
@@ -99,7 +99,7 @@ def update(session: Session, db_producto: Producto, producto_data: ProductoUpdat
                 for ing in ingredientes_raw
             ]
 
-        producto_dict["updated_at"] = datetime.utcnow()
+        producto_dict["updated_at"] = datetime.now(timezone.utc)
 
         updated = uow.productos.update(db_producto, producto_dict, categoria_ids, ingredientes_data)
         uow.productos.refresh(updated)
@@ -115,7 +115,7 @@ def update_disponibilidad(session: Session, db_producto: Producto, disponible: b
     with ProductoUnitOfWork(session) as uow:
         updated = uow.productos.update(db_producto, {
             "disponible": disponible,
-            "updated_at": datetime.utcnow(),
+            "updated_at": datetime.now(timezone.utc),
         })
         uow.productos.refresh(updated)
     return updated
@@ -125,7 +125,7 @@ def update_imagenes(session: Session, db_producto: Producto, imagenes_url: list[
     with ProductoUnitOfWork(session) as uow:
         updated = uow.productos.update(db_producto, {
             "imagenes_url": imagenes_url,
-            "updated_at": datetime.utcnow(),
+            "updated_at": datetime.now(timezone.utc),
         })
         uow.productos.refresh(updated)
     return updated
@@ -143,7 +143,7 @@ def get_ingredientes(session: Session, producto_id: int) -> list[IngredienteInPr
                     nombre=ingrediente.nombre,
                     es_alergeno=ingrediente.es_alergeno,
                     cantidad=link.cantidad,
-                    unidad_medida_codigo=link.unidad_medida_codigo,
+                    unidad_medida_id=link.unidad_medida_id,
                     es_removible=link.es_removible,
                 ))
         return result
@@ -159,17 +159,17 @@ def add_ingrediente(session: Session, db_producto: Producto, ing_data: Ingredien
             db_producto.id,
             ing_data.ingrediente_id,
             cantidad=ing_data.cantidad,
-            unidad_medida_codigo=ing_data.unidad_medida_codigo,
+            unidad_medida_id=ing_data.unidad_medida_id,
             es_removible=ing_data.es_removible,
         )
 
-        uow.productos.update(db_producto, {"updated_at": datetime.utcnow()})
+        uow.productos.update(db_producto, {"updated_at": datetime.now(timezone.utc)})
 
     return IngredienteInProducto(
         id=ingrediente.id,
         nombre=ingrediente.nombre,
         es_alergeno=ingrediente.es_alergeno,
         cantidad=ing_data.cantidad,
-        unidad_medida_codigo=ing_data.unidad_medida_codigo,
+        unidad_medida_id=ing_data.unidad_medida_id,
         es_removible=ing_data.es_removible,
     )
