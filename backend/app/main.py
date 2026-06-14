@@ -1,3 +1,4 @@
+import os
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Query
 from fastapi.middleware.cors import CORSMiddleware
@@ -44,7 +45,8 @@ app = FastAPI(lifespan=lifespan)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
-origins = [
+_frontend_url = os.getenv("FRONTEND_URL")
+origins = [u.strip() for u in _frontend_url.split(",") if u.strip()] if _frontend_url else [
     "http://localhost:5173",
     "http://localhost:5174",
     "http://localhost:5175",
@@ -75,22 +77,41 @@ def read_root():
     return {"message": "API de Productos y Categorías"}
 
 
-@app.websocket("/ws")
-async def websocket_endpoint(websocket: WebSocket, token: str = Query(...)):
-    """WebSocket autenticado vía query param ?token=<access_token>."""
+@app.websocket("/ws/pedidos")
+async def websocket_endpoint(
+    websocket: WebSocket,
+    token: str = Query(...),
+    pedido_id: int = Query(default=None),
+):
+    """
+    WebSocket autenticado vía query param ?token=<access_token>.
+
+    Routing de canal:
+    - ?pedido_id=<id>  → suscribe al canal "pedido:{id}" (clientes)
+    - sin pedido_id    → si el token tiene rol ADMIN o PEDIDOS, suscribe al canal "admin"
+    """
     try:
         payload = verify_token(token)
         if payload.get("type") != "access":
             await websocket.close(code=4001)
             return
-        user_id = int(payload["sub"])
     except Exception:
         await websocket.close(code=4001)
         return
 
-    await ws_manager.connect(websocket, user_id)
+    roles: list = payload.get("roles", [])
+
+    if pedido_id is not None:
+        channel = f"pedido:{pedido_id}"
+    elif "ADMIN" in roles or "PEDIDOS" in roles:
+        channel = "admin"
+    else:
+        await websocket.close(code=4003)
+        return
+
+    await ws_manager.connect(websocket, channel)
     try:
         while True:
             await websocket.receive_text()
     except WebSocketDisconnect:
-        ws_manager.disconnect(websocket, user_id)
+        ws_manager.disconnect(websocket, channel)
