@@ -1,6 +1,8 @@
 from typing import List, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlmodel import Field, Relationship, SQLModel
+from sqlalchemy import Column, ForeignKey, Integer
+from app.core.types import PortableBigInt
 from app.modules.productos.model import ProductoCategoriaLink
 
 class CategoriaBase(SQLModel):
@@ -9,10 +11,13 @@ class CategoriaBase(SQLModel):
     imagen_url: Optional[str] = None
 
 class Categoria(CategoriaBase, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
-    parent_id: Optional[int] = Field(default=None, foreign_key="categoria.id")
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    id: Optional[int] = Field(default=None, sa_column=Column(PortableBigInt, primary_key=True, autoincrement=True))
+    parent_id: Optional[int] = Field(
+        default=None,
+        sa_column=Column(Integer, ForeignKey("categoria.id", ondelete="SET NULL"), nullable=True),
+    )
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     deleted_at: Optional[datetime] = None
     productos: List["Producto"] = Relationship(back_populates="categorias", link_model=ProductoCategoriaLink)
     subcategorias: List["Categoria"] = Relationship(

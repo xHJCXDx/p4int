@@ -1,15 +1,18 @@
 from typing import Optional
 from sqlmodel import Field, SQLModel
+from sqlalchemy import Column
+from app.core.types import PortableBigInt
 
 
 class UnidadMedidaBase(SQLModel):
-    nombre: str = Field(max_length=50)
-    simbolo: str = Field(max_length=10)
+    codigo: str = Field(unique=True, max_length=10)
+    nombre: str = Field(unique=True, max_length=50)
+    simbolo: str = Field(unique=True, max_length=10)
     tipo: str = Field(max_length=20)
 
 
 class UnidadMedida(UnidadMedidaBase, table=True):
-    codigo: str = Field(primary_key=True, max_length=10)
+    id: Optional[int] = Field(default=None, sa_column=Column(PortableBigInt, primary_key=True, autoincrement=True))
 
 
 class FormaPagoBase(SQLModel):

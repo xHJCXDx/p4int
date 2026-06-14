@@ -1,6 +1,9 @@
 from typing import List, Optional
-from datetime import datetime
-from sqlmodel import Field, Relationship, SQLModel, JSON
+from decimal import Decimal
+from datetime import datetime, timezone
+from sqlmodel import Field, Relationship, SQLModel
+from sqlalchemy import Column, Integer, Numeric
+from app.core.types import PortableArray, PortableBigInt
 
 
 class PedidoBase(SQLModel):
@@ -12,14 +15,14 @@ class PedidoBase(SQLModel):
 
 
 class Pedido(PedidoBase, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
-    subtotal: float = Field(ge=0)
-    descuento: float = Field(default=0.0, ge=0)
-    costo_envio: float = Field(default=50.0, ge=0)
-    total: float = Field(ge=0)
+    id: Optional[int] = Field(default=None, sa_column=Column(PortableBigInt, primary_key=True, autoincrement=True))
+    subtotal: Decimal = Field(sa_type=Numeric(10, 2), ge=0)
+    descuento: Decimal = Field(default=Decimal("0.00"), sa_type=Numeric(10, 2), ge=0)
+    costo_envio: Decimal = Field(default=Decimal("50.00"), sa_type=Numeric(10, 2), ge=0)
+    total: Decimal = Field(sa_type=Numeric(10, 2), ge=0)
     motivo_cancelacion: Optional[str] = Field(default=None, max_length=500)
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     deleted_at: Optional[datetime] = None
     detalles: List["DetallePedido"] = Relationship(back_populates="pedido", cascade_delete=True)
     pagos: List["Pago"] = Relationship(back_populates="pedido", cascade_delete=True)  # noqa: F821
@@ -30,16 +33,16 @@ class DetallePedidoBase(SQLModel):
     pedido_id: int = Field(foreign_key="pedido.id")
     producto_id: int = Field(foreign_key="producto.id")
     cantidad: int = Field(ge=1)
-    personalizacion: List[int] = Field(default=[], sa_type=JSON)
+    personalizacion: Optional[List[int]] = Field(default=None, sa_type=PortableArray(Integer))
 
 
 class DetallePedido(DetallePedidoBase, table=True):
     pedido_id: int = Field(foreign_key="pedido.id", primary_key=True)
     producto_id: int = Field(foreign_key="producto.id", primary_key=True)
     nombre_snapshot: str = Field(max_length=200)
-    precio_snapshot: float = Field(ge=0)
-    subtotal_snap: float = Field(ge=0)
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    precio_snapshot: Decimal = Field(sa_type=Numeric(10, 2), ge=0)
+    subtotal_snap: Decimal = Field(sa_type=Numeric(10, 2), ge=0)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     pedido: Optional[Pedido] = Relationship(back_populates="detalles")
 
 
@@ -52,6 +55,6 @@ class HistorialEstadoPedidoBase(SQLModel):
 
 
 class HistorialEstadoPedido(HistorialEstadoPedidoBase, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    id: Optional[int] = Field(default=None, sa_column=Column(PortableBigInt, primary_key=True, autoincrement=True))
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     pedido: Optional[Pedido] = Relationship(back_populates="historial")

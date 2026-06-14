@@ -1,6 +1,8 @@
 from typing import Optional, List
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlmodel import Field, Relationship, SQLModel
+from sqlalchemy import CHAR, Column
+from app.core.types import PortableBigInt
 
 
 class UsuarioRolLink(SQLModel, table=True):
@@ -10,7 +12,7 @@ class UsuarioRolLink(SQLModel, table=True):
     rol_codigo: Optional[str] = Field(default=None, foreign_key="rol.codigo", primary_key=True)
     asignado_por_id: Optional[int] = Field(default=None, foreign_key="usuario.id")
     expires_at: Optional[datetime] = None
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 class RolBase(SQLModel):
@@ -40,10 +42,10 @@ class UsuarioBase(SQLModel):
 
 class Usuario(UsuarioBase, table=True):
     """Usuario del sistema con roles asociados."""
-    id: Optional[int] = Field(default=None, primary_key=True)
-    password_hash: str = Field(max_length=60)
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    id: Optional[int] = Field(default=None, sa_column=Column(PortableBigInt, primary_key=True, autoincrement=True))
+    password_hash: str = Field(sa_column=Column(CHAR(60), nullable=False))
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     deleted_at: Optional[datetime] = None
 
     roles: List[Rol] = Relationship(
@@ -60,9 +62,9 @@ class RefreshToken(SQLModel, table=True):
     """Tokens de refresco para sesiones de usuario."""
     __tablename__ = "refresh_token"
 
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: Optional[int] = Field(default=None, sa_column=Column(PortableBigInt, primary_key=True, autoincrement=True))
     usuario_id: int = Field(foreign_key="usuario.id")
     token_hash: str = Field(max_length=64, unique=True)
     expires_at: datetime
     revoked_at: Optional[datetime] = None
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
