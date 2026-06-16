@@ -4,6 +4,7 @@ import { useAuthStore } from '../../store/useAuthStore';
 import { useToast } from '../../components/Toast';
 import { getApiErrorMessage } from '../../api/axios';
 import { DetalleInPedido } from '../../types/pedido';
+import { usePrompt } from '../../components/ConfirmDialog';
 
 export default function CajeroPage() {
   const { data: pedidos = [], isLoading } = usePedidos();
@@ -13,6 +14,7 @@ export default function CajeroPage() {
   const { usuario } = useAuthStore();
 
   const { showToast } = useToast();
+  const promptDialog = usePrompt();
   const isAdmin = usuario?.roles.includes('ADMIN') ?? false;
   const isPedidos = usuario?.roles.includes('PEDIDOS') ?? false;
   const canManageOrders = isAdmin || isPedidos;
@@ -166,8 +168,14 @@ export default function CajeroPage() {
                       </button>
                     ))}
                     <button
-                      onClick={() => {
-                        const motivo = prompt('Motivo de cancelacion:');
+                      onClick={async () => {
+                        const motivo = await promptDialog({
+                          title: 'Cancelar pedido',
+                          message: `¿Seguro que querés cancelar el pedido #${pedido.id}?`,
+                          inputPlaceholder: 'Motivo de cancelación...',
+                          confirmText: 'Cancelar pedido',
+                          cancelText: 'Volver',
+                        });
                         if (motivo) handleTransition(pedido.id, 'CANCELADO', motivo);
                       }}
                       className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-colors font-medium"

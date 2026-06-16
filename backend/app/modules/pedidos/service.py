@@ -5,11 +5,13 @@ from sqlmodel import Session
 from app.modules.pedidos.model import Pedido, DetallePedido, HistorialEstadoPedido
 from app.modules.pedidos.schema import PedidoCreate, PedidoCreateFromCheckout, PedidoUpdate, DetallePedidoCreate
 from app.modules.pedidos.unit_of_work import PedidoUnitOfWork
-from app.core.constants import TRANSICIONES_PERMITIDAS, ACCIONES_A_ESTADOS
+from app.core.constants import TRANSICIONES_PERMITIDAS, ACCIONES_A_ESTADOS, convertir_unidad
 from app.modules.productos.model import Producto, ProductoIngredienteLink
 from app.modules.ingredientes.model import Ingrediente
 from app.modules.usuarios.model import Usuario
 from app.core.response import BusinessRuleError
+from app.modules.pedidos.schema import PedidoDetail, DetallePedidoRead, HistorialEstadoPedidoRead
+from app.modules.pagos.schema import PagoRead
 
 
 def is_client_only(user: Usuario) -> bool:
@@ -72,6 +74,24 @@ def get_pedido_with_permission(session: Session, pedido_id: int, current_user: U
     return pedido
 
 
+def get_pedido_detail(session: Session, pedido_id: int, current_user: Usuario) -> PedidoDetail:
+    """Obtiene pedido completo con detalles, historial y pago. Verifica permisos."""
+    from app.modules.pagos import service as pagos_service
+
+    pedido = get_pedido_with_permission(session, pedido_id, current_user)
+    detalles = get_detalles_by_pedido(session, pedido_id)
+    historial = get_historial(session, pedido_id)
+    pagos = pagos_service.get_pagos_by_pedido(session, pedido_id)
+    pago = PagoRead.model_validate(pagos[0]) if pagos else None
+
+    return PedidoDetail(
+        **pedido.model_dump(),
+        detalles=[DetallePedidoRead.model_validate(d) for d in detalles],
+        historial=[HistorialEstadoPedidoRead.model_validate(h) for h in historial],
+        pago=pago,
+    )
+
+
 def verify_admin_or_pedidos(current_user: Usuario) -> None:
     """Verifica que el usuario tenga rol ADMIN o PEDIDOS."""
     if not is_admin_or_pedidos(current_user):
@@ -118,9 +138,21 @@ def create_pedido_from_checkout(session: Session, checkout_data: PedidoCreateFro
         raise ValueError("El pedido debe tener al menos un producto")
 
     with PedidoUnitOfWork(session) as uow:
+        # Cache de unidades de medida (id → codigo) para conversiones
+        _um_cache: dict[int, str] = {}
+
+        def _get_um_codigo(um_id: int) -> str:
+            if um_id not in _um_cache:
+                um = uow.unidades_medida.get_by_id(um_id)
+                if not um:
+                    raise ValueError(f"Unidad de medida {um_id} no existe")
+                _um_cache[um_id] = um.codigo
+            return _um_cache[um_id]
+
         # Validar stock de ingredientes y calcular subtotal
         subtotal = Decimal("0")
         productos_info = []
+        # Acumula consumo ya convertido a la unidad del ingrediente
         consumo_ingredientes: dict[int, Decimal] = {}
 
         for linea in checkout_data.items:
@@ -139,9 +171,20 @@ def create_pedido_from_checkout(session: Session, checkout_data: PedidoCreateFro
             links = uow.productos.get_ingrediente_links(producto.id)
 
             for link in links:
-                total_necesario = link.cantidad * linea.cantidad
+                ingrediente = uow.ingredientes.get_by_id(link.ingrediente_id)
+                if not ingrediente:
+                    raise ValueError(f"Ingrediente {link.ingrediente_id} no existe o fue eliminado")
+
+                # Cantidad de la receta en la unidad de la receta
+                total_receta = link.cantidad * linea.cantidad
+
+                # Convertir a la unidad del ingrediente (stock)
+                codigo_receta = _get_um_codigo(link.unidad_medida_id)
+                codigo_stock = _get_um_codigo(ingrediente.unidad_medida_id) if ingrediente.unidad_medida_id else codigo_receta
+                total_en_stock = convertir_unidad(total_receta, codigo_receta, codigo_stock)
+
                 consumo_ingredientes[link.ingrediente_id] = (
-                    consumo_ingredientes.get(link.ingrediente_id, Decimal("0")) + total_necesario
+                    consumo_ingredientes.get(link.ingrediente_id, Decimal("0")) + total_en_stock
                 )
 
             linea_subtotal = producto.precio_base * linea.cantidad
@@ -149,15 +192,16 @@ def create_pedido_from_checkout(session: Session, checkout_data: PedidoCreateFro
             # S4.2 — capturar personalizacion (IDs de ingredientes a remover)
             productos_info.append((producto, linea.cantidad, linea_subtotal, linea.personalizacion))
 
-        # Validar stock suficiente de cada ingrediente
+        # Validar stock suficiente de cada ingrediente (ya en misma unidad)
         for ing_id, cantidad_necesaria in consumo_ingredientes.items():
             ingrediente = uow.ingredientes.get_by_id(ing_id)
             if not ingrediente:
                 raise ValueError(f"Ingrediente {ing_id} no existe o fue eliminado")
             if ingrediente.stock_cantidad < cantidad_necesaria:
+                codigo = _get_um_codigo(ingrediente.unidad_medida_id) if ingrediente.unidad_medida_id else "u"
                 raise ValueError(
                     f"Stock insuficiente de ingrediente '{ingrediente.nombre}': "
-                    f"disponible {ingrediente.stock_cantidad}, necesario {cantidad_necesaria}"
+                    f"disponible {ingrediente.stock_cantidad} {codigo}, necesario {cantidad_necesaria} {codigo}"
                 )
 
         costo_envio = Decimal("50.0")

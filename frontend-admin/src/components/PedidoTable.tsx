@@ -11,6 +11,7 @@ import {
 } from '@tanstack/react-table';
 import { Pedido } from '../types/pedido';
 import { EstadoPedido, FormaPago } from '../hooks/useCatalogo';
+import { usePrompt } from './ConfirmDialog';
 
 interface PedidoTableProps {
   data: Pedido[];
@@ -46,6 +47,8 @@ const TRANSICIONES_POR_ESTADO: Record<string, { nuevo_estado: string; label: str
 };
 
 export function PedidoTable({ data, onChangeEstado, estadosPedido, formasPago, isLoading = false }: PedidoTableProps) {
+  const promptDialog = usePrompt();
+
   const getEstadoLabel = (codigo: string) =>
     estadosPedido.find((e) => e.codigo === codigo)?.descripcion || codigo;
 
@@ -162,9 +165,15 @@ export function PedidoTable({ data, onChangeEstado, estadosPedido, formasPago, i
               {transiciones.map((t) => (
                 <button
                   key={t.nuevo_estado}
-                  onClick={() => {
+                  onClick={async () => {
                     if (t.nuevo_estado === 'CANCELADO') {
-                      const motivo = prompt('Motivo de cancelacion:');
+                      const motivo = await promptDialog({
+                        title: 'Cancelar pedido',
+                        message: `¿Seguro que querés cancelar el pedido #${pedido.id}?`,
+                        inputPlaceholder: 'Motivo de cancelación...',
+                        confirmText: 'Cancelar pedido',
+                        cancelText: 'Volver',
+                      });
                       if (motivo) onChangeEstado(pedido.id!, t.nuevo_estado, motivo);
                     } else {
                       onChangeEstado(pedido.id!, t.nuevo_estado);

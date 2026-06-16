@@ -1,4 +1,5 @@
 from typing import Optional
+from decimal import Decimal
 from datetime import datetime
 from app.modules.ingredientes.model import IngredienteBase
 
@@ -14,5 +15,5 @@ class IngredienteUpdate(IngredienteBase):
     nombre: Optional[str] = None
     descripcion: Optional[str] = None
     es_alergeno: Optional[bool] = None
-    stock_cantidad: Optional[int] = None
+    stock_cantidad: Optional[Decimal] = None
     unidad_medida_id: Optional[int] = None

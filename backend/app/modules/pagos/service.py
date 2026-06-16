@@ -7,6 +7,7 @@ from app.modules.pagos.model import Pago
 from app.modules.pagos.schema import PagoCreate
 from app.modules.pagos.unit_of_work import PagoUnitOfWork
 from app.modules.usuarios.model import Usuario
+from app.modules.pedidos.service import is_client_only, get_pedido_by_id
 
 logger = logging.getLogger(__name__)
 
@@ -14,7 +15,6 @@ FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
 
 
 def verify_pago_read_permission(session: Session, pedido_id: int, current_user: Usuario) -> None:
-    from app.modules.pedidos.service import get_pedido_by_id, is_client_only
     pedido = get_pedido_by_id(session, pedido_id)
     if not pedido:
         raise ValueError("Pedido no encontrado")
@@ -55,14 +55,16 @@ def _create_mp_preference(pedido, detalles, idempotency_key: str) -> Optional[di
             "failure": f"{FRONTEND_URL}/store/mis-pedidos?pago=error",
             "pending": f"{FRONTEND_URL}/store/mis-pedidos?pago=pendiente",
         },
-        "auto_return": "approved",
+        # auto_return requiere back_urls HTTPS — omitir en desarrollo local
         "notification_url": os.getenv(
             "MERCADOPAGO_WEBHOOK_URL",
             "https://example.com/api/v1/pagos/webhook",
         ),
     }
 
-    result = sdk.preference().create(preference_data, idempotency_key)
+    from mercadopago.config import RequestOptions
+    request_options = RequestOptions(custom_headers={"x-idempotency-key": idempotency_key})
+    result = sdk.preference().create(preference_data, request_options)
     if result["status"] == 201:
         return result["response"]
 
@@ -71,48 +73,55 @@ def _create_mp_preference(pedido, detalles, idempotency_key: str) -> Optional[di
 
 
 def crear_pago(session: Session, pago_data: PagoCreate, current_user: Usuario) -> dict:
-    """Crea registro de pago y preference de MercadoPago (Checkout Pro)."""
+    """Crea registro de pago y preference de MercadoPago (Checkout Pro).
+    Si ya existe un pago pendiente para el pedido, regenera la preference de MP.
+    """
     with PagoUnitOfWork(session) as uow:
         pedido = uow.pedidos.get_by_id(pago_data.pedido_id)
         if not pedido:
             raise ValueError(f"Pedido {pago_data.pedido_id} no existe")
 
-        from app.modules.pedidos.service import is_client_only
         if is_client_only(current_user) and pedido.usuario_id != current_user.id:
             raise PermissionError("No podes crear pagos para pedidos ajenos")
-
-        idempotency_key = str(uuid4())
 
         # Obtener detalles del pedido para armar items de la preference
         detalles = uow.detalles.get_by_pedido(pedido.id)
 
-        # Crear preference en MercadoPago
+        # Reutilizar pago existente si ya hay uno pendiente
+        existing_pagos = uow.pagos.get_by_pedido(pedido.id)
+        existing_pago = next((p for p in existing_pagos if p.mp_status == "pending"), None)
+
+        idempotency_key = str(uuid4())
         mp_response = _create_mp_preference(pedido, detalles, idempotency_key)
 
-        new_pago = Pago(
-            pedido_id=pago_data.pedido_id,
-            mp_status="pending",
-            transaction_amount=pago_data.transaction_amount,
-            external_reference=str(pedido.id),
-            idempotency_key=idempotency_key,
-        )
-        uow.pagos.create(new_pago)
-        uow.pagos.refresh(new_pago)
+        if existing_pago:
+            uow.pagos.update(existing_pago, {"idempotency_key": idempotency_key})
+            pago = existing_pago
+        else:
+            pago = Pago(
+                pedido_id=pago_data.pedido_id,
+                mp_status="pending",
+                transaction_amount=pago_data.transaction_amount,
+                external_reference=str(pedido.id),
+                idempotency_key=idempotency_key,
+            )
+            uow.pagos.create(pago)
+        uow.pagos.refresh(pago)
 
     # Retornar pago + init_point como dict para el router
     pago_dict = {
-        "id": new_pago.id,
-        "pedido_id": new_pago.pedido_id,
-        "mp_payment_id": new_pago.mp_payment_id,
-        "mp_status": new_pago.mp_status,
-        "mp_status_detail": new_pago.mp_status_detail,
-        "transaction_amount": new_pago.transaction_amount,
-        "external_reference": new_pago.external_reference,
-        "idempotency_key": new_pago.idempotency_key,
-        "payment_method_id": new_pago.payment_method_id,
+        "id": pago.id,
+        "pedido_id": pago.pedido_id,
+        "mp_payment_id": pago.mp_payment_id,
+        "mp_status": pago.mp_status,
+        "mp_status_detail": pago.mp_status_detail,
+        "transaction_amount": pago.transaction_amount,
+        "external_reference": pago.external_reference,
+        "idempotency_key": pago.idempotency_key,
+        "payment_method_id": pago.payment_method_id,
         "init_point": mp_response.get("init_point") if mp_response else None,
-        "created_at": new_pago.created_at,
-        "updated_at": new_pago.updated_at,
+        "created_at": pago.created_at,
+        "updated_at": pago.updated_at,
     }
     return pago_dict
 
@@ -120,7 +129,7 @@ def crear_pago(session: Session, pago_data: PagoCreate, current_user: Usuario) -
 def process_webhook(session: Session, body: dict) -> dict:
     """Procesa notificacion IPN de MercadoPago.
     Consulta el estado real del pago via SDK y actualiza.
-    Si approved -> avanza pedido a CONFIRMADO.
+    Si approved -> avanza pedido a CONFIRMADO (FUERA del UoW de pagos).
     """
     topic = body.get("type") or body.get("topic")
     if topic != "payment":
@@ -141,6 +150,8 @@ def process_webhook(session: Session, body: dict) -> dict:
             mp_payment = result["response"]
     except RuntimeError:
         logger.warning("MP SDK no configurado, procesando webhook sin verificacion")
+
+    pedido_id_to_confirm = None
 
     with PagoUnitOfWork(session) as uow:
         # Buscar pago por external_reference (pedido_id)
@@ -175,10 +186,14 @@ def process_webhook(session: Session, body: dict) -> dict:
         uow.pagos.update(pago, update_data)
 
         if mp_status == "approved":
-            from app.modules.pedidos.service import transition_estado
-            try:
-                transition_estado(session, pago.pedido_id, "CONFIRMADO", usuario_id=None)
-            except ValueError:
-                logger.info("Pedido %s ya fue transicionado", pago.pedido_id)
+            pedido_id_to_confirm = pago.pedido_id
+
+    # Transición de estado FUERA del UoW de pagos (commit separado, WS post-commit)
+    if pedido_id_to_confirm is not None:
+        from app.modules.pedidos.service import transition_estado
+        try:
+            transition_estado(session, pedido_id_to_confirm, "CONFIRMADO", usuario_id=None)
+        except ValueError:
+            logger.info("Pedido %s ya fue transicionado", pedido_id_to_confirm)
 
     return {"status": "ok"}

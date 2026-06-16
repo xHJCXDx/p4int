@@ -1,17 +1,18 @@
 import { z } from 'zod';
 
 export const ingredienteEnRecetaSchema = z.object({
-  ingrediente_id: z.number(),
-  cantidad: z.number().int().min(1, 'La cantidad debe ser al menos 1').default(1),
+  ingrediente_id: z.coerce.number(),
+  cantidad: z.coerce.number().positive('La cantidad debe ser mayor a 0').default(1),
   es_removible: z.boolean().default(false),
+  unidad_medida_id: z.coerce.number({ error: 'La unidad de medida es requerida' }).int().positive('La unidad de medida es requerida'),
 });
 
 export const productoFormSchema = z.object({
   nombre: z.string().min(1, 'El nombre es requerido').min(3, 'Minimo 3 caracteres'),
   descripcion: z.string().min(1, 'La descripcion es requerida'),
-  precio_base: z.number().min(0.01, 'El precio debe ser mayor a 0'),
+  precio_base: z.coerce.number().min(0.01, 'El precio debe ser mayor a 0'),
   imagenes_url: z.array(z.string()).optional().default([]),
-  categoria_ids: z.array(z.number()).default([]),
+  categoria_ids: z.array(z.coerce.number()).default([]),
   ingredientes: z.array(ingredienteEnRecetaSchema).default([]),
 });
 

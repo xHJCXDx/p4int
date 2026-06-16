@@ -46,6 +46,9 @@ class ProductoRepository(BaseRepository[Producto]):
         if disponible is not None:
             statement = statement.where(Producto.disponible == disponible)
             count_statement = count_statement.where(Producto.disponible == disponible)
+            if disponible:
+                statement = statement.where(Producto.stock_cantidad > 0)
+                count_statement = count_statement.where(Producto.stock_cantidad > 0)
 
         total = self.session.exec(count_statement).one()
         statement = statement.offset(offset).limit(limit)

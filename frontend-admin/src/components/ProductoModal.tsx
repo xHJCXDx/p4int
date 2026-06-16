@@ -32,6 +32,7 @@ function getDefaults(p?: Producto | null): {
         ingrediente_id: i.id,
         cantidad: i.cantidad,
         es_removible: i.es_removible,
+        unidad_medida_id: i.unidad_medida_id,
       })) || [],
   };
 }
@@ -225,9 +226,10 @@ const ProductoModal = ({ isOpen, onClose, onSubmit, productoInitial }: Props) =>
 
               const addIngrediente = (ingId: number) => {
                 if (receta.some((r) => r.ingrediente_id === ingId)) return;
+                const ing = ingredientes.find((i) => i.id === ingId);
                 field.handleChange([
                   ...receta,
-                  { ingrediente_id: ingId, cantidad: 1, es_removible: false },
+                  { ingrediente_id: ingId, cantidad: 1, es_removible: false, unidad_medida_id: ing?.unidad_medida_id ?? 1 },
                 ]);
               };
 
@@ -238,7 +240,7 @@ const ProductoModal = ({ isOpen, onClose, onSubmit, productoInitial }: Props) =>
               const updateCantidad = (ingId: number, cantidad: number) => {
                 field.handleChange(
                   receta.map((r) =>
-                    r.ingrediente_id === ingId ? { ...r, cantidad: Math.max(1, cantidad) } : r
+                    r.ingrediente_id === ingId ? { ...r, cantidad: Math.max(0.001, cantidad) } : r
                   )
                 );
               };
@@ -285,12 +287,13 @@ const ProductoModal = ({ isOpen, onClose, onSubmit, productoInitial }: Props) =>
                             </span>
                             <input
                               type="number"
-                              min="1"
+                              min="0.001"
+                              step="0.001"
                               value={item.cantidad}
                               onChange={(e) =>
-                                updateCantidad(item.ingrediente_id, parseInt(e.target.value) || 1)
+                                updateCantidad(item.ingrediente_id, parseFloat(e.target.value) || 0.001)
                               }
-                              className="w-16 text-center border rounded py-1 px-2 text-sm"
+                              className="w-20 text-center border rounded py-1 px-2 text-sm"
                               title="Cantidad necesaria"
                             />
                             <label className="flex items-center text-xs gap-1" title="Removible por el cliente">

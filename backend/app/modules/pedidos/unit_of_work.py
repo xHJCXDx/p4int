@@ -7,6 +7,7 @@ from app.modules.pedidos.repository import (
 )
 from app.modules.productos.repository import ProductoRepository
 from app.modules.ingredientes.repository import IngredienteRepository
+from app.modules.catalogo.repository import UnidadMedidaRepository
 
 
 class PedidoUnitOfWork(BaseUnitOfWork):
@@ -19,3 +20,4 @@ class PedidoUnitOfWork(BaseUnitOfWork):
         self.historial = HistorialEstadoPedidoRepository(session)
         self.productos = ProductoRepository(session)
         self.ingredientes = IngredienteRepository(session)
+        self.unidades_medida = UnidadMedidaRepository(session)
