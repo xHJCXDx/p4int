@@ -26,8 +26,12 @@ export function useLogin() {
         throw new Error(result.message || 'Credenciales inválidas');
       }
 
-      const { user, tokens } = result.data;
-      setAuth(user, tokens.access_token, tokens.refresh_token);
+      const { access_token, refresh_token } = result.data;
+      const meResponse = await apiClient.get('/auth/me', {
+        headers: { Authorization: `Bearer ${access_token}` },
+      });
+      const user = meResponse.data.data;
+      setAuth(user, access_token, refresh_token);
       return user;
     },
   });

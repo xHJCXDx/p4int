@@ -8,17 +8,17 @@ const API_URL = '/productos';
 interface FetchProductosParams {
   page?: number;
   size?: number;
-  categoria_id?: number;
+  categoria?: number;
   disponible?: boolean;
-  busqueda?: string;
+  search?: string;
 }
 
 const fetchProductos = async (params: FetchProductosParams = {}): Promise<Producto[]> => {
   const { page = 1, size = 100, ...filters } = params;
   const queryParams: Record<string, string | number | boolean> = { page, size };
-  if (filters.categoria_id !== undefined) queryParams.categoria_id = filters.categoria_id;
+  if (filters.categoria !== undefined) queryParams.categoria = filters.categoria;
   if (filters.disponible !== undefined) queryParams.disponible = filters.disponible;
-  if (filters.busqueda) queryParams.busqueda = filters.busqueda;
+  if (filters.search) queryParams.search = filters.search;
 
   const response = await apiClient.get<ApiResponse<PaginatedData<Producto>>>(API_URL, { params: queryParams });
   return response.data.data.items || [];

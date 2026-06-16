@@ -47,7 +47,7 @@ export default function CheckoutPage() {
       {
         direccion_id: selectedDireccionId,
         forma_pago_codigo: formaPago,
-        linea_ventas: items.map((item) => ({
+        items: items.map((item) => ({
           producto_id: item.producto_id,
           cantidad: item.cantidad,
         })),
@@ -110,7 +110,7 @@ export default function CheckoutPage() {
               {items.map((item) => (
                 <div key={item.producto_id} className="flex justify-between">
                   <span>{item.nombre} x {item.cantidad}</span>
-                  <span>${(item.precio * item.cantidad).toFixed(2)}</span>
+                  <span>${(Number(item.precio_base) * item.cantidad).toFixed(2)}</span>
                 </div>
               ))}
             </div>
@@ -144,8 +144,8 @@ export default function CheckoutPage() {
                         {dir.alias}
                         {dir.es_principal && <span className="ml-2 text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">Principal</span>}
                       </p>
-                      <p className="text-sm text-gray-600">{dir.linea1}{dir.linea2 ? `, ${dir.linea2}` : ''}</p>
-                      <p className="text-sm text-gray-600">{dir.ciudad}, {dir.provincia} {dir.codigo_postal}</p>
+                      <p className="text-sm text-gray-600">{dir.calle} {dir.numero}{dir.piso ? `, Piso ${dir.piso}` : ''}{dir.departamento ? ` Dto ${dir.departamento}` : ''}</p>
+                      <p className="text-sm text-gray-600">{dir.localidad}, {dir.provincia} {dir.codigo_postal}</p>
                     </div>
                   </label>
                 ))}

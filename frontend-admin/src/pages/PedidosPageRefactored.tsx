@@ -10,10 +10,10 @@ function PedidosPageRefactored() {
   const { data: estadosPedido = [] } = useEstadosPedido();
   const { showToast } = useToast();
 
-  const handleChangeEstado = async (pedidoId: number, accion: string, _motivo?: string) => {
+  const handleChangeEstado = async (pedidoId: number, nuevo_estado: string, motivo?: string) => {
     try {
-      await transitionMutation.mutateAsync({ pedido_id: pedidoId, accion });
-      showToast(`Pedido #${pedidoId}: accion "${accion}" aplicada`, 'success');
+      await transitionMutation.mutateAsync({ pedido_id: pedidoId, nuevo_estado, motivo });
+      showToast(`Pedido #${pedidoId}: estado cambiado a "${nuevo_estado}"`, 'success');
     } catch {
       showToast(`Error al cambiar estado del pedido #${pedidoId}`, 'error');
     }

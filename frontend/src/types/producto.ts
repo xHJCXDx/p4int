@@ -15,10 +15,10 @@ export interface Producto {
   id: number;
   nombre: string;
   descripcion: string;
-  precio: number;
+  precio_base: number;
   imagenes_url?: string[];
-  unidad_venta_codigo?: string;
-  stock: number;
+  unidad_venta_id?: number | null;
+  stock_cantidad: number;
   disponible: boolean;
   categorias: CategoriaInProducto[];
   ingredientes: IngredienteInProducto[];

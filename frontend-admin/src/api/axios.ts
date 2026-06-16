@@ -27,9 +27,6 @@ const apiClient = axios.create({
 });
 
 apiClient.interceptors.request.use((config) => {
-  if (config.url && !config.url.endsWith('/') && !config.url.includes('?')) {
-    config.url = `${config.url}/`;
-  }
   const token = useAuthStore.getState().accessToken;
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
@@ -64,7 +61,7 @@ apiClient.interceptors.response.use(
     if (!refreshPromise) {
       refreshPromise = axios
         .post<ApiResponse<{ access_token: string; refresh_token: string }>>(
-          '/api/v1/auth/refresh/',
+          '/api/v1/auth/refresh',
           { refresh_token: refreshToken }
         )
         .then((res) => {

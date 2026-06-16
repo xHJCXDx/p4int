@@ -16,7 +16,10 @@ def _date_trunc(agrupacion: str, column, session: Session):
     PostgreSQL usa func.date_trunc(); SQLite usa func.strftime() como fallback.
     El dialecto se detecta en runtime desde session.bind.
     """
-    dialect = session.bind.dialect.name if session.bind else "sqlite"
+    try:
+        dialect = session.get_bind().dialect.name
+    except Exception:
+        dialect = "sqlite"
     if dialect == "postgresql":
         return func.date_trunc(agrupacion, column)
     # SQLite fallback
@@ -127,7 +130,10 @@ class EstadisticasRepository:
     def get_resumen_kpis(self) -> dict:
         """Cada KPI es una query separada. EST-01 aplicada."""
         hoy = func.date(func.current_timestamp())
-        dialect = self.session.bind.dialect.name if self.session.bind else "sqlite"
+        try:
+            dialect = self.session.get_bind().dialect.name
+        except Exception:
+            dialect = "sqlite"
         if dialect == "postgresql":
             inicio_mes = func.date_trunc("month", func.current_timestamp())
         else:

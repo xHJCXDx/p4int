@@ -25,9 +25,9 @@ export default function LoginPage() {
       { email, password },
       {
         onSuccess: (user: Usuario) => {
-          const isAdmin = user.roles.some((r) => r.codigo === 'ADMIN');
-          const isPedidos = user.roles.some((r) => r.codigo === 'PEDIDOS');
-          const isStock = user.roles.some((r) => r.codigo === 'STOCK');
+          const isAdmin = user.roles.some((r) => r === 'ADMIN');
+          const isPedidos = user.roles.some((r) => r === 'PEDIDOS');
+          const isStock = user.roles.some((r) => r === 'STOCK');
 
           if (isAdmin || isPedidos) {
             navigate('/pedidos');

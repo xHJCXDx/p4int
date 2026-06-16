@@ -3,8 +3,8 @@ import { useCarritoStore } from '../../store/useCarritoStore';
 
 export default function CarritoPage() {
   const { items: rawItems, total, removeItem, updateCantidad } = useCarritoStore();
-  // Filtrar items con datos inválidos (ej: precio undefined por localStorage viejo)
-  const items = rawItems.filter((item) => item.precio != null && item.nombre != null);
+  // Filtrar items con datos inválidos (ej: precio_base undefined por localStorage viejo)
+  const items = rawItems.filter((item) => item.precio_base != null && item.nombre != null);
 
   if (items.length === 0) {
     return (
@@ -39,7 +39,7 @@ export default function CarritoPage() {
                   )}
                   <div className="flex-1">
                     <h3 className="text-lg font-semibold text-gray-900">{item.nombre}</h3>
-                    <p className="text-gray-600">${item.precio.toFixed(2)}</p>
+                    <p className="text-gray-600">${Number(item.precio_base).toFixed(2)}</p>
                   </div>
                   <div className="flex items-center gap-3">
                     <button
@@ -68,7 +68,7 @@ export default function CarritoPage() {
                     </button>
                   </div>
                   <div className="text-lg font-semibold text-gray-900">
-                    ${(item.precio * item.cantidad).toFixed(2)}
+                    ${(Number(item.precio_base) * item.cantidad).toFixed(2)}
                   </div>
                 </div>
               ))}

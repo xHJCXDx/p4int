@@ -3,7 +3,7 @@ from sqlmodel import Session
 from app.core.database import get_session
 from app.core.response import success_response, error_response, ApiResponse
 from app.core.security import get_current_user
-from app.modules.pagos.schema import PagoCreate, PagoRead
+from app.modules.pagos.schema import PagoCreate, PagoRead, PagoCreateResponse
 from app.modules.pagos import service
 from app.modules.usuarios.model import Usuario
 
@@ -20,7 +20,7 @@ def crear_pago(
     try:
         pago_dict = service.crear_pago(session, pago, current_user)
         return success_response(
-            data=PagoRead.model_validate(pago_dict),
+            data=PagoCreateResponse.model_validate(pago_dict),
             message="Pago creado exitosamente",
             status_code=201,
         )

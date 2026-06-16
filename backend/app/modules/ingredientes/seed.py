@@ -27,9 +27,10 @@ def seed_ingredientes(session: Session) -> Dict[str, Ingrediente]:
         for ing_data in ingredientes_data:
             existing = uow.ingredientes.get_by_nombre(ing_data["nombre"])
             if not existing:
-                um_codigo = ing_data.pop("unidad_medida_codigo")
+                um_codigo = ing_data["unidad_medida_codigo"]
                 um = session.exec(select(UnidadMedida).where(UnidadMedida.codigo == um_codigo)).first()
-                ing = Ingrediente(**ing_data, unidad_medida_id=um.id if um else None)
+                ing_fields = {k: v for k, v in ing_data.items() if k != "unidad_medida_codigo"}
+                ing = Ingrediente(**ing_fields, unidad_medida_id=um.id if um else None)
                 uow.ingredientes.create(ing)
                 uow.ingredientes.flush()
                 ingredientes[ing_data["nombre"]] = ing

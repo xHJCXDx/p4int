@@ -4,7 +4,7 @@ import { DireccionEntrega } from '../types/direccion';
 
 const API_URL = '/direcciones';
 
-type DireccionCreate = Omit<DireccionEntrega, 'id' | 'usuario_id' | 'created_at' | 'updated_at' | 'deleted_at'>;
+type DireccionCreate = Omit<DireccionEntrega, 'id' | 'usuario_id' | 'created_at'>;
 
 const fetchDirecciones = async (): Promise<DireccionEntrega[]> => {
   const response = await apiClient.get<ApiResponse<PaginatedData<DireccionEntrega>>>(API_URL);

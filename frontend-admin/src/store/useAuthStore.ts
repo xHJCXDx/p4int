@@ -7,7 +7,7 @@ export interface Usuario {
   apellido: string;
   email: string;
   celular: string | null;
-  roles: { codigo: string; nombre: string; descripcion: string }[];
+  roles: string[];
   created_at: string;
 }
 
@@ -54,7 +54,7 @@ export const useAuthStore = create<AuthState>()(
 
       hasRole: (role: string) => {
         const state = get();
-        return state.usuario?.roles.some((r) => r.codigo === role) ?? false;
+        return state.usuario?.roles.includes(role) ?? false;
       },
     }),
     {

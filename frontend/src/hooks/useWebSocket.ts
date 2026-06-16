@@ -7,7 +7,6 @@ const ESTADOS_LABEL: Record<string, string> = {
   PENDIENTE: 'Pendiente',
   CONFIRMADO: 'Confirmado',
   EN_PREP: 'En preparacion',
-  EN_CAMINO: 'En camino',
   ENTREGADO: 'Entregado',
   CANCELADO: 'Cancelado',
 };
@@ -36,7 +35,7 @@ export function useWebSocket() {
     if (wsRef.current?.readyState === WebSocket.OPEN) return;
 
     const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
-    const ws = new WebSocket(`${protocol}://${window.location.host}/ws?token=${token}`);
+    const ws = new WebSocket(`${protocol}://${window.location.host}/ws/pedidos?token=${token}`);
 
     ws.onopen = () => {
       retriesRef.current = 0;
@@ -58,7 +57,7 @@ export function useWebSocket() {
 
     ws.onclose = (event) => {
       wsRef.current = null;
-      if (event.code === 4001) return; // auth rejected, don't retry
+      if (event.code === 4001 || event.code === 4003) return; // auth rejected, don't retry
 
       if (retriesRef.current < MAX_RETRIES) {
         const delay = BASE_DELAY * Math.pow(2, retriesRef.current);

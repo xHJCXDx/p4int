@@ -80,7 +80,6 @@ export default function DashboardPage() {
                     cx="50%"
                     cy="50%"
                     outerRadius={100}
-                    label={({ name, value }) => `${name} (${value})`}
                   >
                     {pedidosEstado.map((entry, index) => (
                       <Cell

@@ -14,7 +14,7 @@ class BaseRepository(Generic[T]):
         statement = select(self.model).offset(offset).limit(limit)
         items = self.session.exec(statement).all()
 
-        count_statement = select(func.count(self.model.id))
+        count_statement = select(func.count()).select_from(self.model)
         total = self.session.exec(count_statement).one()
 
         return items, total

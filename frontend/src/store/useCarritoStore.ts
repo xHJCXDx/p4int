@@ -4,7 +4,7 @@ import { persist } from 'zustand/middleware';
 export interface CartItem {
   producto_id: number;
   nombre: string;
-  precio: number;
+  precio_base: number;
   cantidad: number;
   imagen?: string;
 }
@@ -19,7 +19,7 @@ interface CarritoState {
 }
 
 function calcTotal(items: CartItem[]): number {
-  return items.reduce((acc, item) => acc + item.precio * item.cantidad, 0);
+  return items.reduce((acc, item) => acc + item.precio_base * item.cantidad, 0);
 }
 
 export const useCarritoStore = create<CarritoState>()(
@@ -68,6 +68,18 @@ export const useCarritoStore = create<CarritoState>()(
     }),
     {
       name: 'carrito-storage',
+      version: 1,
+      migrate: (persisted: unknown) => {
+        const state = persisted as Record<string, unknown>;
+        const items = (state.items as Record<string, unknown>[]) || [];
+        return {
+          ...state,
+          items: items.map((item) => ({
+            ...item,
+            precio_base: item.precio_base ?? item.precio ?? 0,
+          })),
+        };
+      },
     }
   )
 );

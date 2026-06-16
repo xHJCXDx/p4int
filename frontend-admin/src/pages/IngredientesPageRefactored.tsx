@@ -17,7 +17,7 @@ function IngredientesPageRefactored() {
   const [selectedIngrediente, setSelectedIngrediente] = useState<Ingrediente | null>(null);
 
   const { usuario } = useAuthStore();
-  const isAdmin = usuario?.roles.some((r) => r.codigo === 'ADMIN') ?? false;
+  const isAdmin = usuario?.roles.some((r) => r === 'ADMIN') ?? false;
 
   const { data: ingredientes = [], isLoading } = useIngredientes();
   const createMutation = useCreateIngrediente();

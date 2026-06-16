@@ -13,8 +13,8 @@ export default function CajeroPage() {
   const { usuario } = useAuthStore();
 
   const { showToast } = useToast();
-  const isAdmin = usuario?.roles.some((r) => r.codigo === 'ADMIN') ?? false;
-  const isPedidos = usuario?.roles.some((r) => r.codigo === 'PEDIDOS') ?? false;
+  const isAdmin = usuario?.roles.includes('ADMIN') ?? false;
+  const isPedidos = usuario?.roles.includes('PEDIDOS') ?? false;
   const canManageOrders = isAdmin || isPedidos;
 
   const getEstadoDescripcion = (codigo: string) =>
@@ -27,9 +27,9 @@ export default function CajeroPage() {
   const terminalCodes = new Set(estadosPedido.filter((e) => e.es_terminal).map((e) => e.codigo));
   const pedidosActivos = pedidos.filter((p) => !terminalCodes.has(p.estado_codigo));
 
-  const handleTransition = (pedidoId: number, accion: string) => {
+  const handleTransition = (pedidoId: number, nuevo_estado: string, motivo?: string) => {
     transitionEstado(
-      { pedido_id: pedidoId, accion },
+      { pedido_id: pedidoId, nuevo_estado, motivo },
       {
         onSuccess: () => {
           showToast('Estado actualizado', 'success');
@@ -44,13 +44,11 @@ export default function CajeroPage() {
   const getAccionesDisponibles = (estado: string) => {
     switch (estado) {
       case 'PENDIENTE':
-        return ['confirmar'];
+        return ['CONFIRMADO'];
       case 'CONFIRMADO':
-        return ['preparar'];
+        return ['EN_PREP'];
       case 'EN_PREP':
-        return ['enviar'];
-      case 'EN_CAMINO':
-        return ['entregar'];
+        return ['ENTREGADO'];
       default:
         return [];
     }
@@ -64,8 +62,6 @@ export default function CajeroPage() {
         return 'bg-gray-200 text-gray-800';
       case 'EN_PREP':
         return 'bg-purple-100 text-purple-800';
-      case 'EN_CAMINO':
-        return 'bg-indigo-100 text-indigo-800';
       case 'ENTREGADO':
         return 'bg-green-100 text-green-800';
       default:
@@ -73,14 +69,13 @@ export default function CajeroPage() {
     }
   };
 
-  const getAccionBoton = (accion: string) => {
-    const acciones: Record<string, string> = {
-      confirmar: 'Confirmar',
-      preparar: 'Preparar',
-      enviar: 'Enviar',
-      entregar: 'Entregar',
+  const getAccionBoton = (estado: string) => {
+    const labels: Record<string, string> = {
+      CONFIRMADO: 'Confirmar',
+      EN_PREP: 'Preparar',
+      ENTREGADO: 'Entregar',
     };
-    return acciones[accion] || accion;
+    return labels[estado] || estado;
   };
 
   if (isLoading) {
@@ -129,7 +124,7 @@ export default function CajeroPage() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 pb-4 border-b">
                   <div>
                     <p className="text-sm text-gray-600">Total:</p>
-                    <p className="text-2xl font-bold text-blue-600">${pedido.total?.toFixed(2) ?? '0.00'}</p>
+                    <p className="text-2xl font-bold text-blue-600">${Number(pedido.total ?? 0).toFixed(2)}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-600">Forma de pago:</p>
@@ -151,7 +146,7 @@ export default function CajeroPage() {
                       {pedido.detalles.map((det: DetalleInPedido, idx: number) => (
                         <li key={idx} className="text-sm text-gray-600 flex justify-between">
                           <span>{det.nombre_snapshot} x {det.cantidad}</span>
-                          <span className="font-medium">${det.subtotal_snap?.toFixed(2)}</span>
+                          <span className="font-medium">${Number(det.subtotal_snap ?? 0).toFixed(2)}</span>
                         </li>
                       ))}
                     </ul>
@@ -173,7 +168,7 @@ export default function CajeroPage() {
                     <button
                       onClick={() => {
                         const motivo = prompt('Motivo de cancelacion:');
-                        if (motivo) handleTransition(pedido.id, 'cancelar');
+                        if (motivo) handleTransition(pedido.id, 'CANCELADO', motivo);
                       }}
                       className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-colors font-medium"
                     >

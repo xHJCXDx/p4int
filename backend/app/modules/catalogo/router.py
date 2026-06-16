@@ -15,7 +15,7 @@ def read_unidades_medida(session: Session = Depends(get_session)) -> ApiResponse
     """Listado de unidades de medida."""
     unidades = service.get_all_unidades_medida(session)
     return success_response(
-        data=[{"codigo": u.codigo, "nombre": u.nombre, "simbolo": u.simbolo, "tipo": u.tipo} for u in unidades],
+        data=[{"id": u.id, "codigo": u.codigo, "nombre": u.nombre, "simbolo": u.simbolo, "tipo": u.tipo} for u in unidades],
         message="Unidades de medida obtenidas"
     )
 
@@ -27,7 +27,7 @@ def create_unidad_medida(data: UnidadMedidaCreate, session: Session = Depends(ge
     if not nueva:
         return error_response(detail=f"La unidad '{data.codigo}' ya existe", status_code=400, code="DUPLICATE_CODIGO", field="codigo")
     return success_response(
-        data={"codigo": nueva.codigo, "nombre": nueva.nombre, "simbolo": nueva.simbolo, "tipo": nueva.tipo},
+        data={"id": nueva.id, "codigo": nueva.codigo, "nombre": nueva.nombre, "simbolo": nueva.simbolo, "tipo": nueva.tipo},
         message="Unidad de medida creada",
         status_code=201
     )

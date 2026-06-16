@@ -7,9 +7,9 @@ const API_URL = '/productos';
 interface FetchProductosParams {
   page?: number;
   size?: number;
-  categoria_id?: number;
+  categoria?: number;
   disponible?: boolean;
-  busqueda?: string;
+  search?: string;
 }
 
 const fetchProductos = async (params: FetchProductosParams = {}): Promise<Producto[]> => {

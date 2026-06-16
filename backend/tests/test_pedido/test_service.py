@@ -175,11 +175,11 @@ def test_transition_confirmado_a_en_prep(session, catalogo_seed):
     assert pedido.estado_codigo == "EN_PREP"
 
 
-def test_transition_en_camino_a_cancelado_falla(session, catalogo_seed):
-    """Transición inválida: EN_CAMINO → CANCELADO debe fallar (ValueError)."""
+def test_transition_entregado_a_cancelado_falla(session, catalogo_seed):
+    """Transición inválida: ENTREGADO → CANCELADO debe fallar (estado terminal)."""
     pedido_data = PedidoCreate(
         usuario_id=1,
-        estado_codigo="EN_CAMINO",
+        estado_codigo="ENTREGADO",
         forma_pago_codigo="MERCADOPAGO",
         subtotal=100.0,
         total=150.0
@@ -187,7 +187,7 @@ def test_transition_en_camino_a_cancelado_falla(session, catalogo_seed):
     pedido = pedido_service.create_pedido(session, pedido_data)
     session.refresh(pedido)
 
-    # Intentar cancelar desde EN_CAMINO (no permitido)
+    # Intentar cancelar desde ENTREGADO (estado terminal — no permitido)
     with pytest.raises(ValueError) as exc_info:
         pedido_service.transition_estado(session, pedido.id, "CANCELADO", usuario_id=1)
 

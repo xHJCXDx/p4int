@@ -2,11 +2,14 @@ export interface DireccionEntrega {
   id: number;
   usuario_id: number;
   alias: string;
-  linea1: string;
-  linea2: string | null;
-  ciudad: string;
+  calle: string;
+  numero: string;
+  piso: string | null;
+  departamento: string | null;
+  localidad: string;
   provincia: string;
   codigo_postal: string;
+  referencia: string | null;
   latitud: number | null;
   longitud: number | null;
   es_principal: boolean;

@@ -102,11 +102,20 @@ class ProductoRepository(BaseRepository[Producto]):
 
     def update(self, db_producto: Producto, producto_data: dict, categoria_ids: List[int] = None, ingredientes_data: list = None) -> Producto:
         if categoria_ids is not None:
-            db_producto.categorias = []
+            existing_cat_links = self.session.exec(
+                select(ProductoCategoriaLink).where(
+                    ProductoCategoriaLink.producto_id == db_producto.id
+                )
+            ).all()
+            for link in existing_cat_links:
+                self.session.delete(link)
+            self.session.flush()
+
             for cat_id in categoria_ids:
                 categoria = self.session.get(Categoria, cat_id)
                 if categoria:
-                    db_producto.categorias.append(categoria)
+                    link = ProductoCategoriaLink(producto_id=db_producto.id, categoria_id=cat_id)
+                    self.session.add(link)
 
         if ingredientes_data is not None:
             existing_links = self.session.exec(

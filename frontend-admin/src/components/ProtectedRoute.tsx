@@ -16,7 +16,7 @@ export function ProtectedRoute({ children, roles }: ProtectedRouteProps) {
 
   // Si se requieren roles especificos, validar
   if (roles && usuario) {
-    const hasRequiredRole = roles.some((role) => usuario.roles.some((r) => r.codigo === role));
+    const hasRequiredRole = roles.some((role) => usuario.roles.includes(role));
     if (!hasRequiredRole) {
       return <Navigate to="/403" replace />;
     }

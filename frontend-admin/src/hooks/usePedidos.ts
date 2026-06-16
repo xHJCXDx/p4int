@@ -23,26 +23,18 @@ const createPedido = async (
   return response.data.data;
 };
 
-const updatePedido = async (
-  id: number,
-  data: Omit<Pedido, 'id' | 'created_at' | 'updated_at' | 'deleted_at'>
-): Promise<Pedido> => {
-  const response = await apiClient.put<ApiResponse<Pedido>>(`${API_URL}/${id}`, data);
-  return response.data.data;
-};
-
 const deletePedido = async (id: number): Promise<void> => {
   await apiClient.delete(`${API_URL}/${id}`);
 };
 
 const transitionEstado = async (
   pedido_id: number,
-  accion: string
+  nuevo_estado: string,
+  motivo?: string
 ): Promise<Pedido> => {
-  const response = await apiClient.post<ApiResponse<Pedido>>(
-    `${API_URL}/${pedido_id}/transition-estado`,
-    {},
-    { params: { accion } }
+  const response = await apiClient.patch<ApiResponse<Pedido>>(
+    `${API_URL}/${pedido_id}/estado`,
+    { nuevo_estado, motivo }
   );
   return response.data.data;
 };
@@ -74,23 +66,6 @@ export const useCreatePedido = () => {
   });
 };
 
-export const useUpdatePedido = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({
-      id,
-      data,
-    }: {
-      id: number;
-      data: Omit<Pedido, 'id' | 'created_at' | 'updated_at' | 'deleted_at'>;
-    }) => updatePedido(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['pedidos'] });
-    },
-  });
-};
-
 export const useDeletePedido = () => {
   const queryClient = useQueryClient();
 
@@ -106,8 +81,8 @@ export const useTransitionEstado = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ pedido_id, accion }: { pedido_id: number; accion: string }) =>
-      transitionEstado(pedido_id, accion),
+    mutationFn: ({ pedido_id, nuevo_estado, motivo }: { pedido_id: number; nuevo_estado: string; motivo?: string }) =>
+      transitionEstado(pedido_id, nuevo_estado, motivo),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pedidos'] });
     },

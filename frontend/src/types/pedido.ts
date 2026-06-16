@@ -7,7 +7,7 @@ export interface PedidoCheckoutCreate {
   direccion_id: number;
   forma_pago_codigo: string;
   notas?: string;
-  linea_ventas: LineaVenta[];
+  items: LineaVenta[];
 }
 
 export interface DetalleInPedido {

@@ -12,9 +12,9 @@ export default function HomeStorePage() {
   const [busqueda, setBusqueda] = useState('');
   const { data: categorias = [] } = useCategorias();
   const { data: productos = [] } = useProductos({
-    categoria_id: selectedCategoriaId,
+    categoria: selectedCategoriaId,
     disponible: true,
-    busqueda: busqueda || undefined,
+    search: busqueda || undefined,
   });
 
   const addItem = useCarritoStore((state) => state.addItem);
@@ -24,7 +24,7 @@ export default function HomeStorePage() {
     addItem({
       producto_id: producto.id,
       nombre: producto.nombre,
-      precio: producto.precio,
+      precio_base: Number(producto.precio_base),
       cantidad: 1,
       imagen: producto.imagenes_url?.[0],
     });
@@ -80,11 +80,11 @@ export default function HomeStorePage() {
         {/* Grilla de productos */}
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {productos.map((producto) => (
-            <div key={producto.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
+            <div key={producto.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow flex flex-col">
               {producto.imagenes_url?.[0] && (
                 <img src={producto.imagenes_url[0]} alt={producto.nombre} className="w-full h-48 object-cover" />
               )}
-              <div className="p-4">
+              <div className="p-4 flex flex-col flex-1">
                 <h3 className="text-lg font-semibold text-gray-900 mb-1">{producto.nombre}</h3>
 
                 {producto.categorias?.length > 0 && (
@@ -122,18 +122,19 @@ export default function HomeStorePage() {
                   </div>
                 )}
 
-                <div className="flex justify-between items-center">
-                  <span className="text-2xl font-bold text-blue-600">${producto.precio}</span>
+                <div className="mt-auto pt-3 border-t border-gray-100">
+                  <p className="text-2xl font-bold text-blue-600 mb-3">${Number(producto.precio_base).toFixed(2)}</p>
                   <div className="flex gap-2">
                     <Link
                       to={`/store/producto/${producto.id}`}
-                      className="text-blue-600 border border-blue-600 px-3 py-2 rounded-lg hover:bg-blue-50 transition-colors text-sm"
+                      className="flex-1 text-center text-blue-600 border border-blue-600 px-3 py-2 rounded-lg hover:bg-blue-50 transition-colors text-sm font-medium"
                     >
                       Ver detalle
                     </Link>
                     <button
                       onClick={() => handleAddToCarrito(producto)}
-                      className="bg-gray-800 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors"
+                      disabled={!producto.disponible || producto.stock_cantidad === 0}
+                      className="flex-1 bg-gray-800 text-white px-3 py-2 rounded-lg hover:bg-gray-700 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       Agregar
                     </button>

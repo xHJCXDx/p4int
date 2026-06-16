@@ -133,7 +133,7 @@ function PerfilSection() {
           Miembro desde: {usuario?.created_at ? new Date(usuario.created_at).toLocaleDateString('es-AR') : '-'}
         </p>
         <p className="text-sm text-gray-500">
-          Roles: {usuario?.roles.map((r) => r.nombre).join(', ') || '-'}
+          Roles: {usuario?.roles.join(', ') || '-'}
         </p>
       </div>
 
@@ -160,15 +160,18 @@ function DireccionesSection() {
 
   const [form, setForm] = useState({
     alias: '',
-    linea1: '',
-    linea2: '',
-    ciudad: '',
+    calle: '',
+    numero: '',
+    localidad: '',
     provincia: '',
     codigo_postal: '',
+    piso: '',
+    departamento: '',
+    referencia: '',
   });
 
   const resetForm = () => {
-    setForm({ alias: '', linea1: '', linea2: '', ciudad: '', provincia: '', codigo_postal: '' });
+    setForm({ alias: '', calle: '', numero: '', localidad: '', provincia: '', codigo_postal: '', piso: '', departamento: '', referencia: '' });
     setEditing(null);
     setShowForm(false);
   };
@@ -177,11 +180,14 @@ function DireccionesSection() {
     setEditing(d);
     setForm({
       alias: d.alias,
-      linea1: d.linea1,
-      linea2: d.linea2 || '',
-      ciudad: d.ciudad,
+      calle: d.calle,
+      numero: d.numero,
+      localidad: d.localidad,
       provincia: d.provincia,
       codigo_postal: d.codigo_postal,
+      piso: d.piso || '',
+      departamento: d.departamento || '',
+      referencia: d.referencia || '',
     });
     setShowForm(true);
   };
@@ -192,8 +198,15 @@ function DireccionesSection() {
     setError('');
 
     const payload = {
-      ...form,
-      linea2: form.linea2 || null,
+      alias: form.alias,
+      calle: form.calle,
+      numero: form.numero,
+      localidad: form.localidad,
+      provincia: form.provincia,
+      codigo_postal: form.codigo_postal,
+      piso: form.piso || null,
+      departamento: form.departamento || null,
+      referencia: form.referencia || null,
       latitud: null,
       longitud: null,
       es_principal: false,
@@ -261,32 +274,52 @@ function DireccionesSection() {
                 required
               />
             </div>
-            <div className="col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Direccion</label>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Calle</label>
               <input
                 type="text"
-                value={form.linea1}
-                onChange={(e) => setForm({ ...form, linea1: e.target.value })}
+                value={form.calle}
+                onChange={(e) => setForm({ ...form, calle: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent"
-                placeholder="Calle y numero"
+                placeholder="Nombre de la calle"
                 required
               />
             </div>
-            <div className="col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Depto / Piso (opcional)</label>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Numero</label>
               <input
                 type="text"
-                value={form.linea2}
-                onChange={(e) => setForm({ ...form, linea2: e.target.value })}
+                value={form.numero}
+                onChange={(e) => setForm({ ...form, numero: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent"
+                placeholder="Ej: 1234"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Piso (opcional)</label>
+              <input
+                type="text"
+                value={form.piso}
+                onChange={(e) => setForm({ ...form, piso: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Ciudad</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Departamento (opcional)</label>
               <input
                 type="text"
-                value={form.ciudad}
-                onChange={(e) => setForm({ ...form, ciudad: e.target.value })}
+                value={form.departamento}
+                onChange={(e) => setForm({ ...form, departamento: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Localidad</label>
+              <input
+                type="text"
+                value={form.localidad}
+                onChange={(e) => setForm({ ...form, localidad: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent"
                 required
               />
@@ -355,11 +388,12 @@ function DireccionesSection() {
                   )}
                 </div>
                 <p className="text-sm text-gray-600 mt-1">
-                  {d.linea1}
-                  {d.linea2 && `, ${d.linea2}`}
+                  {d.calle} {d.numero}
+                  {d.piso && `, Piso ${d.piso}`}
+                  {d.departamento && ` Dto ${d.departamento}`}
                 </p>
                 <p className="text-sm text-gray-500">
-                  {d.ciudad}, {d.provincia} - CP {d.codigo_postal}
+                  {d.localidad}, {d.provincia} - CP {d.codigo_postal}
                 </p>
               </div>
               <div className="flex gap-2 flex-shrink-0">

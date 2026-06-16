@@ -48,6 +48,7 @@ def usuario_client_fixture(session: Session):
     """Usuario con rol CLIENT para testear permisos restrictivos."""
     client_user = Usuario(
         nombre="Client User",
+        apellido="Test",
         email="client@test.com",
         password_hash=hash_password("pass1234")
     )

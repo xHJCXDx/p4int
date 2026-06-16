@@ -106,16 +106,18 @@ def seed_productos(session: Session, categorias: Dict[str, Categoria], ingredien
         for prod_data in productos_data:
             existing = uow.productos.get_by_nombre(prod_data["nombre"])
             if not existing:
-                cat_id = prod_data.pop("categoria_id")
-                ingredientes_prod = prod_data.pop("ingredientes", [])
-                unidad_venta_codigo = prod_data.pop("unidad_venta_codigo", None)
+                cat_id = prod_data["categoria_id"]
+                ingredientes_prod = prod_data.get("ingredientes", [])
+                unidad_venta_codigo = prod_data.get("unidad_venta_codigo", None)
+                _exclude = {"categoria_id", "ingredientes", "unidad_venta_codigo"}
+                prod_fields = {k: v for k, v in prod_data.items() if k not in _exclude}
 
                 unidad_venta_id = None
                 if unidad_venta_codigo:
                     um = session.exec(select(UnidadMedida).where(UnidadMedida.codigo == unidad_venta_codigo)).first()
                     unidad_venta_id = um.id if um else None
 
-                prod = Producto(**prod_data, unidad_venta_id=unidad_venta_id)
+                prod = Producto(**prod_fields, unidad_venta_id=unidad_venta_id)
                 uow.productos.create(prod)
                 uow.productos.flush()
 

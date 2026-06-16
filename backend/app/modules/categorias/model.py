@@ -22,6 +22,9 @@ class Categoria(CategoriaBase, table=True):
     productos: List["Producto"] = Relationship(back_populates="categorias", link_model=ProductoCategoriaLink)
     subcategorias: List["Categoria"] = Relationship(
         back_populates="parent",
-        sa_relationship_kwargs={"remote_side": "Categoria.id", "foreign_keys": "[Categoria.parent_id]"}
+        sa_relationship_kwargs={"foreign_keys": "[Categoria.parent_id]"}
     )
-    parent: Optional["Categoria"] = Relationship(back_populates="subcategorias")
+    parent: Optional["Categoria"] = Relationship(
+        back_populates="subcategorias",
+        sa_relationship_kwargs={"remote_side": "[Categoria.id]", "foreign_keys": "[Categoria.parent_id]"}
+    )

@@ -24,7 +24,7 @@ export default function LoginPage() {
       { email, password },
       {
         onSuccess: (user: Usuario) => {
-          const hasAdminRole = user.roles.some((r) => ['ADMIN', 'PEDIDOS', 'STOCK'].includes(r.codigo));
+          const hasAdminRole = user.roles.some((r) => ['ADMIN', 'PEDIDOS', 'STOCK'].includes(r));
           if (hasAdminRole) {
             navigate('/admin');
           } else {

@@ -28,6 +28,8 @@ export function IngredienteFormSimple({
   const [showNewUnidad, setShowNewUnidad] = useState(false);
   const [newCodigo, setNewCodigo] = useState('');
   const [newNombre, setNewNombre] = useState('');
+  const [newSimbolo, setNewSimbolo] = useState('');
+  const [newTipo, setNewTipo] = useState('');
   const [unidadError, setUnidadError] = useState('');
 
   const form = useForm({
@@ -35,8 +37,8 @@ export function IngredienteFormSimple({
       nombre: initialData?.nombre || '',
       descripcion: initialData?.descripcion || '',
       es_alergeno: initialData?.es_alergeno || false,
-      stock: initialData?.stock || 0,
-      unidad_medida_codigo: initialData?.unidad_medida_codigo || 'u',
+      stock_cantidad: initialData?.stock_cantidad || 0,
+      unidad_medida_id: initialData?.unidad_medida_id || 0,
     },
     onSubmit: async ({ value }) => {
       const validated = ingredienteFormSchema.parse(value);
@@ -46,16 +48,25 @@ export function IngredienteFormSimple({
 
   const handleCreateUnidad = async () => {
     setUnidadError('');
-    if (!newCodigo.trim() || !newNombre.trim()) {
-      setUnidadError('Codigo y nombre son requeridos');
+    if (!newCodigo.trim() || !newNombre.trim() || !newSimbolo.trim() || !newTipo.trim()) {
+      setUnidadError('Codigo, nombre, simbolo y tipo son requeridos');
       return;
     }
     try {
-      await createUnidad.mutateAsync({ codigo: newCodigo.trim().toLowerCase(), nombre: newNombre.trim() });
-      form.setFieldValue('unidad_medida_codigo', newCodigo.trim().toLowerCase());
+      const created = await createUnidad.mutateAsync({
+        codigo: newCodigo.trim().toLowerCase(),
+        nombre: newNombre.trim(),
+        simbolo: newSimbolo.trim(),
+        tipo: newTipo.trim(),
+      });
+      if (created.id) {
+        form.setFieldValue('unidad_medida_id', created.id);
+      }
       setShowNewUnidad(false);
       setNewCodigo('');
       setNewNombre('');
+      setNewSimbolo('');
+      setNewTipo('');
     } catch (err: unknown) {
       setUnidadError(getApiErrorMessage(err, 'Error al crear unidad'));
     }
@@ -110,7 +121,7 @@ export function IngredienteFormSimple({
 
       {/* Stock + Unidad de medida en la misma fila */}
       <div className="grid grid-cols-2 gap-4">
-        <form.Field name="stock">
+        <form.Field name="stock_cantidad">
           {(field) => (
             <div>
               <label className="block text-gray-700 font-bold mb-2">Stock *</label>
@@ -132,19 +143,22 @@ export function IngredienteFormSimple({
           )}
         </form.Field>
 
-        <form.Field name="unidad_medida_codigo">
-          {(field) => (
+        <form.Field name="unidad_medida_id">
+          {(field) => {
+            const selectedUnidad = unidades.find((u) => u.id === field.state.value);
+            return (
             <div>
               <label className="block text-gray-700 font-bold mb-2">Unidad de medida *</label>
               <div className="flex gap-2">
                 <select
-                  value={field.state.value}
-                  onChange={(e) => field.handleChange(e.target.value)}
+                  value={field.state.value || ''}
+                  onChange={(e) => field.handleChange(parseInt(e.target.value) || 0)}
                   onBlur={field.handleBlur}
                   className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500"
                 >
+                  <option value="">Seleccionar...</option>
                   {unidades.map((u) => (
-                    <option key={u.codigo} value={u.codigo}>
+                    <option key={u.codigo} value={u.id}>
                       {u.nombre} ({u.codigo})
                     </option>
                   ))}
@@ -152,12 +166,12 @@ export function IngredienteFormSimple({
                 <button
                   type="button"
                   onClick={async () => {
-                    if (!field.state.value) return;
-                    const ok = await confirmDialog({ message: `¿Eliminar la unidad "${field.state.value}"?` });
+                    if (!selectedUnidad) return;
+                    const ok = await confirmDialog({ message: `¿Eliminar la unidad "${selectedUnidad.nombre}"?` });
                     if (!ok) return;
-                    deleteUnidad.mutate(field.state.value, {
+                    deleteUnidad.mutate(selectedUnidad.codigo, {
                       onSuccess: () => {
-                        field.handleChange('u');
+                        field.handleChange(0);
                         showToast('Unidad eliminada', 'success');
                       },
                       onError: (err: Error) => showToast(getApiErrorMessage(err, 'No se pudo eliminar la unidad'), 'error'),
@@ -181,7 +195,8 @@ export function IngredienteFormSimple({
                 <p className="text-red-600 text-sm mt-1">{unidadError}</p>
               )}
             </div>
-          )}
+            );
+          }}
         </form.Field>
       </div>
 
@@ -210,6 +225,26 @@ export function IngredienteFormSimple({
                 value={newNombre}
                 onChange={(e) => setNewNombre(e.target.value)}
                 placeholder="Ej: Miligramos"
+                className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-500"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-600 mb-1">Simbolo</label>
+              <input
+                type="text"
+                value={newSimbolo}
+                onChange={(e) => setNewSimbolo(e.target.value)}
+                placeholder="Ej: mg"
+                className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-500"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-600 mb-1">Tipo</label>
+              <input
+                type="text"
+                value={newTipo}
+                onChange={(e) => setNewTipo(e.target.value)}
+                placeholder="Ej: masa, volumen, unidad"
                 className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-500"
               />
             </div>

@@ -19,6 +19,9 @@ class PagoRead(SQLModel):
     external_reference: str
     idempotency_key: str
     payment_method_id: Optional[str] = None
-    init_point: Optional[str] = None
     created_at: datetime
     updated_at: datetime
+
+
+class PagoCreateResponse(PagoRead):
+    init_point: Optional[str] = None

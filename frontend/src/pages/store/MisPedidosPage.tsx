@@ -31,8 +31,6 @@ export default function MisPedidosPage() {
         return 'bg-gray-200 text-gray-800';
       case 'EN_PREP':
         return 'bg-purple-100 text-purple-800';
-      case 'EN_CAMINO':
-        return 'bg-indigo-100 text-indigo-800';
       case 'ENTREGADO':
         return 'bg-green-100 text-green-800';
       case 'CANCELADO':
@@ -74,7 +72,7 @@ export default function MisPedidosPage() {
                       {pedido.detalles.map((det: DetalleInPedido, idx: number) => (
                         <li key={idx} className="text-sm text-gray-600 flex justify-between">
                           <span>{det.nombre_snapshot} x {det.cantidad}</span>
-                          <span className="font-medium">${det.subtotal_snap?.toFixed(2)}</span>
+                          <span className="font-medium">${Number(det.subtotal_snap ?? 0).toFixed(2)}</span>
                         </li>
                       ))}
                     </ul>
@@ -84,7 +82,7 @@ export default function MisPedidosPage() {
                 <div className="flex justify-between items-center">
                   <div>
                     <p className="text-sm text-gray-600">Total:</p>
-                    <p className="text-2xl font-bold text-blue-600">${pedido.total?.toFixed(2) ?? '0.00'}</p>
+                    <p className="text-2xl font-bold text-blue-600">${Number(pedido.total ?? 0).toFixed(2)}</p>
                   </div>
                   <div className="text-right">
                     <p className="text-sm text-gray-600">Forma de pago:</p>

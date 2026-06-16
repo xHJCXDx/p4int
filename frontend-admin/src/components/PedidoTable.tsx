@@ -14,7 +14,7 @@ import { EstadoPedido, FormaPago } from '../hooks/useCatalogo';
 
 interface PedidoTableProps {
   data: Pedido[];
-  onChangeEstado: (pedidoId: number, accion: string, motivo?: string) => void;
+  onChangeEstado: (pedidoId: number, nuevo_estado: string, motivo?: string) => void;
   estadosPedido: EstadoPedido[];
   formasPago: FormaPago[];
   isLoading?: boolean;
@@ -26,26 +26,22 @@ const ESTADO_BADGE: Record<string, string> = {
   'PENDIENTE': 'bg-yellow-100 text-yellow-800',
   'CONFIRMADO': 'bg-gray-200 text-gray-800',
   'EN_PREP': 'bg-purple-100 text-purple-800',
-  'EN_CAMINO': 'bg-orange-100 text-orange-800',
   'ENTREGADO': 'bg-green-100 text-green-800',
   'CANCELADO': 'bg-red-100 text-red-800',
 };
 
-const ACCIONES_POR_ESTADO: Record<string, { accion: string; label: string }[]> = {
+const TRANSICIONES_POR_ESTADO: Record<string, { nuevo_estado: string; label: string }[]> = {
   'PENDIENTE': [
-    { accion: 'confirmar', label: 'Confirmar' },
-    { accion: 'cancelar', label: 'Cancelar' },
+    { nuevo_estado: 'CONFIRMADO', label: 'Confirmar' },
+    { nuevo_estado: 'CANCELADO', label: 'Cancelar' },
   ],
   'CONFIRMADO': [
-    { accion: 'preparar', label: 'Preparar' },
-    { accion: 'cancelar', label: 'Cancelar' },
+    { nuevo_estado: 'EN_PREP', label: 'Preparar' },
+    { nuevo_estado: 'CANCELADO', label: 'Cancelar' },
   ],
   'EN_PREP': [
-    { accion: 'enviar', label: 'Enviar' },
-    { accion: 'cancelar', label: 'Cancelar' },
-  ],
-  'EN_CAMINO': [
-    { accion: 'entregar', label: 'Entregar' },
+    { nuevo_estado: 'ENTREGADO', label: 'Entregar' },
+    { nuevo_estado: 'CANCELADO', label: 'Cancelar' },
   ],
 };
 
@@ -108,7 +104,7 @@ export function PedidoTable({ data, onChangeEstado, estadosPedido, formasPago, i
                     {det.nombre_snapshot} <span className="text-gray-400">x{det.cantidad}</span>
                   </span>
                   <span className="text-gray-500 font-medium whitespace-nowrap">
-                    ${det.subtotal_snap?.toFixed(2)}
+                    ${Number(det.subtotal_snap ?? 0).toFixed(2)}
                   </span>
                 </div>
               ))}
@@ -119,7 +115,7 @@ export function PedidoTable({ data, onChangeEstado, estadosPedido, formasPago, i
       columnHelper.accessor('total', {
         header: 'Total',
         cell: (info) => (
-          <span className="font-bold text-gray-900">${info.getValue()?.toFixed(2)}</span>
+          <span className="font-bold text-gray-900">${Number(info.getValue() ?? 0).toFixed(2)}</span>
         ),
         enableSorting: true,
         size: 90,
@@ -155,32 +151,32 @@ export function PedidoTable({ data, onChangeEstado, estadosPedido, formasPago, i
         cell: (info) => {
           const pedido = info.row.original;
           const estado = pedido.estado_codigo || '';
-          const acciones = ACCIONES_POR_ESTADO[estado] || [];
+          const transiciones = TRANSICIONES_POR_ESTADO[estado] || [];
 
-          if (acciones.length === 0) {
+          if (transiciones.length === 0) {
             return <span className="text-gray-400 text-xs">-</span>;
           }
 
           return (
             <div className="flex gap-1 flex-wrap">
-              {acciones.map((a) => (
+              {transiciones.map((t) => (
                 <button
-                  key={a.accion}
+                  key={t.nuevo_estado}
                   onClick={() => {
-                    if (a.accion === 'cancelar') {
+                    if (t.nuevo_estado === 'CANCELADO') {
                       const motivo = prompt('Motivo de cancelacion:');
-                      if (motivo) onChangeEstado(pedido.id!, a.accion, motivo);
+                      if (motivo) onChangeEstado(pedido.id!, t.nuevo_estado, motivo);
                     } else {
-                      onChangeEstado(pedido.id!, a.accion);
+                      onChangeEstado(pedido.id!, t.nuevo_estado);
                     }
                   }}
                   className={`text-xs font-bold py-1 px-2 rounded transition-colors ${
-                    a.accion === 'cancelar'
+                    t.nuevo_estado === 'CANCELADO'
                       ? 'bg-red-600 hover:bg-red-700 text-white'
                       : 'bg-gray-700 hover:bg-gray-600 text-white'
                   }`}
                 >
-                  {a.label}
+                  {t.label}
                 </button>
               ))}
             </div>

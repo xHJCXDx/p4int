@@ -38,13 +38,13 @@ export function ProductoTable({ data, onEdit, onDelete, isLoading = false, isAdm
         enableSorting: true,
         filterFn: 'includesString',
       }),
-      columnHelper.accessor('precio', {
+      columnHelper.accessor('precio_base', {
         header: 'Precio',
-        cell: (info) => `$${(info.getValue() ?? 0).toFixed(2)}`,
+        cell: (info) => `$${Number(info.getValue() ?? 0).toFixed(2)}`,
         enableSorting: true,
         size: 80,
       }),
-      columnHelper.accessor('stock', {
+      columnHelper.accessor('stock_cantidad', {
         header: 'Stock',
         cell: (info) => {
           const val = info.getValue();

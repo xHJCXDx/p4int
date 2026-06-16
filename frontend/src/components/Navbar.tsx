@@ -80,8 +80,8 @@ const Navbar = () => {
                       <p className="text-xs text-gray-500">{usuario.email}</p>
                       <div className="flex gap-1 mt-1">
                         {usuario.roles.map((r) => (
-                          <span key={r.codigo} className="text-xs bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded">
-                            {r.nombre}
+                          <span key={r} className="text-xs bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded">
+                            {r}
                           </span>
                         ))}
                       </div>
