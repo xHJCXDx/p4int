@@ -4,7 +4,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, status, Query
 from sqlmodel import Session
 from app.core.database import get_session
-from app.core.response import success_response, paginated_response, error_response, ApiResponse
+from app.core.response import success_response, paginated_response, error_response, paginate_offset, ApiResponse
 from app.core.security import get_current_user
 from app.modules.direcciones.schema import DireccionCreate, DireccionRead, DireccionUpdate
 from app.modules.direcciones.model import DireccionEntrega
@@ -22,8 +22,7 @@ def get_mis_direcciones(
     size: int = Query(10, ge=1, le=100, description="Elementos por página"),
 ) -> ApiResponse:
     """Obtiene todas las direcciones del usuario autenticado."""
-    offset = (page - 1) * size
-    direcciones, total = service.get_direcciones_by_usuario(session, current_user.id, size, offset)
+    direcciones, total = service.get_direcciones_by_usuario(session, current_user.id, size, paginate_offset(page, size))
 
     return paginated_response(
         items=[DireccionRead.model_validate(d) for d in direcciones],
@@ -32,6 +31,25 @@ def get_mis_direcciones(
         size=size,
         message="Direcciones obtenidas",
     )
+
+
+@router.get("/{direccion_id}")
+def get_direccion(
+    direccion_id: int,
+    session: Session = Depends(get_session),
+    current_user: Usuario = Depends(get_current_user)
+) -> ApiResponse:
+    """Obtiene una dirección por ID (solo del usuario autenticado)."""
+    try:
+        direccion = service.get_direccion_for_user(session, direccion_id, current_user.id)
+        return success_response(
+            data=DireccionRead.model_validate(direccion),
+            message="Dirección obtenida"
+        )
+    except PermissionError as e:
+        return error_response(detail=str(e), status_code=403, code="FORBIDDEN")
+    except ValueError as e:
+        return error_response(detail=str(e), status_code=404, code="NOT_FOUND")
 
 
 @router.post("/", status_code=status.HTTP_201_CREATED)

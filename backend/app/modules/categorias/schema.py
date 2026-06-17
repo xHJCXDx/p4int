@@ -1,5 +1,6 @@
 from typing import List, Optional
 from datetime import datetime
+from pydantic import BaseModel
 from app.modules.categorias.model import CategoriaBase
 
 class CategoriaCreate(CategoriaBase):
@@ -18,6 +19,10 @@ class CategoriaUpdate(CategoriaBase):
     descripcion: Optional[str] = None
     imagen_url: Optional[str] = None
     parent_id: Optional[int] = None
+
+class CategoriaImagenUpdate(BaseModel):
+    imagen_url: Optional[str] = None
+
 
 class CategoriaWithChildren(CategoriaBase):
     """Response schema for GET /categorias/{id} — includes direct children."""

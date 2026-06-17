@@ -2,10 +2,10 @@ from typing import Optional
 from fastapi import APIRouter, Depends, status, Query
 from sqlmodel import Session
 from app.core.database import get_session
-from app.core.response import success_response, paginated_response, error_response, ApiResponse
+from app.core.response import success_response, paginated_response, error_response, paginate_offset, ApiResponse
 from app.core.security import require_roles
 from app.core.constants import RolCode
-from app.modules.categorias.schema import CategoriaCreate, CategoriaRead, CategoriaUpdate, CategoriaWithChildren
+from app.modules.categorias.schema import CategoriaCreate, CategoriaRead, CategoriaUpdate, CategoriaWithChildren, CategoriaImagenUpdate
 from app.modules.categorias import service
 
 router = APIRouter(prefix="/api/v1/categorias", tags=["Categorias"])
@@ -18,11 +18,10 @@ def read_categorias(
     size: int = Query(10, ge=1, le=100, description="Elementos por página"),
     parent_id: Optional[int] = Query(None, description="Filtrar por categoría padre")
 ) -> ApiResponse:
-    offset = (page - 1) * size
-    categorias, total = service.get_all(session, size, offset, parent_id=parent_id)
+    items, total = service.get_all_as_read(session, size, paginate_offset(page, size), parent_id=parent_id)
 
     return paginated_response(
-        items=[service.build_categoria_read(session, c) for c in categorias],
+        items=items,
         total=total,
         page=page,
         size=size,
@@ -66,6 +65,23 @@ def update_categoria(categoria_id: int, categoria: CategoriaUpdate, session: Ses
         data=service.build_categoria_read(session, updated_categoria),
         message="Categoría actualizada exitosamente"
     )
+
+@router.patch("/{categoria_id}/imagen", dependencies=[Depends(require_roles(RolCode.ADMIN))])
+def update_categoria_imagen(
+    categoria_id: int,
+    data: CategoriaImagenUpdate,
+    session: Session = Depends(get_session)
+) -> ApiResponse:
+    """Actualizar imagen de una categoría (solo ADMIN)."""
+    db_categoria = service.get_by_id(session, categoria_id)
+    if not db_categoria:
+        return error_response(detail="Categoría no encontrada", status_code=404, code="NOT_FOUND")
+    updated = service.update(session, db_categoria, CategoriaUpdate(imagen_url=data.imagen_url))
+    return success_response(
+        data=service.build_categoria_read(session, updated),
+        message="Imagen de categoría actualizada"
+    )
+
 
 @router.delete("/{categoria_id}", dependencies=[Depends(require_roles(RolCode.ADMIN))])
 def delete_categoria(categoria_id: int, session: Session = Depends(get_session)) -> ApiResponse:

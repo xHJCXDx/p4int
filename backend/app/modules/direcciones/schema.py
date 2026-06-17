@@ -38,6 +38,8 @@ class DireccionRead(BaseModel):
     longitud: Optional[float] = None
     es_principal: bool
     created_at: datetime
+    updated_at: datetime
+    deleted_at: Optional[datetime] = None
 
 
 class DireccionUpdate(BaseModel):

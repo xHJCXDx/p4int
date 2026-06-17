@@ -1,6 +1,7 @@
 from typing import Optional
 from decimal import Decimal
 from datetime import datetime
+from pydantic import BaseModel, Field
 from app.modules.ingredientes.model import IngredienteBase
 
 class IngredienteCreate(IngredienteBase):
@@ -17,3 +18,7 @@ class IngredienteUpdate(IngredienteBase):
     es_alergeno: Optional[bool] = None
     stock_cantidad: Optional[Decimal] = None
     unidad_medida_id: Optional[int] = None
+
+
+class StockUpdate(BaseModel):
+    stock_cantidad: Decimal = Field(ge=0)
