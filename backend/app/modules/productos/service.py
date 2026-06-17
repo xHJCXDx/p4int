@@ -8,11 +8,11 @@ from app.modules.productos.unit_of_work import ProductoUnitOfWork
 from app.core.constants import convertir_unidad
 
 
-def _tiene_stock_ingredientes(uow, producto: Producto) -> bool:
-    """Verifica si hay stock suficiente de todos los ingredientes para 1 unidad del producto."""
+def calcular_stock_producto(uow, producto: Producto) -> int:
+    """Calcula cuántas unidades del producto se pueden fabricar con el stock actual de ingredientes."""
     links = uow.productos.get_ingrediente_links(producto.id)
     if not links:
-        return True
+        return 0
 
     um_cache: dict[int, str] = {}
 
@@ -22,36 +22,39 @@ def _tiene_stock_ingredientes(uow, producto: Producto) -> bool:
             um_cache[um_id] = um.codigo if um else "u"
         return um_cache[um_id]
 
+    min_units = float("inf")
     for link in links:
         ingrediente = uow.ingredientes.get_by_id(link.ingrediente_id)
         if not ingrediente:
-            return False
+            return 0
         codigo_receta = _get_um_codigo(link.unidad_medida_id)
         codigo_stock = _get_um_codigo(ingrediente.unidad_medida_id) if ingrediente.unidad_medida_id else codigo_receta
         try:
             necesario = convertir_unidad(link.cantidad, codigo_receta, codigo_stock)
         except ValueError:
-            return False
-        if ingrediente.stock_cantidad < necesario:
-            return False
-    return True
+            return 0
+        if necesario <= 0:
+            continue
+        min_units = min(min_units, float(ingrediente.stock_cantidad / necesario))
+
+    return int(min_units) if min_units != float("inf") else 0
 
 
-def _build_producto_read(producto_repo, ingrediente_repo, producto: Producto, um_repo=None) -> ProductoRead:
-    """Construye un ProductoRead con ingredientes detallados."""
-    links = producto_repo.get_ingrediente_links(producto.id)
+def _build_producto_read(uow, producto: Producto) -> ProductoRead:
+    """Construye un ProductoRead con ingredientes detallados y stock calculado."""
+    links = uow.productos.get_ingrediente_links(producto.id)
 
     um_cache: dict[int, str] = {}
 
     def _get_um_simbolo(um_id: int) -> str:
         if um_id not in um_cache:
-            um = um_repo.get_by_id(um_id) if um_repo else None
+            um = uow.unidades_medida.get_by_id(um_id)
             um_cache[um_id] = um.simbolo if um else ""
         return um_cache[um_id]
 
     ingredientes_read = []
     for link in links:
-        ingrediente = ingrediente_repo.get_by_id(link.ingrediente_id)
+        ingrediente = uow.ingredientes.get_by_id(link.ingrediente_id)
         if ingrediente:
             ingredientes_read.append(IngredienteInProducto(
                 id=ingrediente.id,
@@ -70,7 +73,7 @@ def _build_producto_read(producto_repo, ingrediente_repo, producto: Producto, um
         precio_base=producto.precio_base,
         imagenes_url=producto.imagenes_url,
         unidad_venta_id=producto.unidad_venta_id,
-        stock_cantidad=producto.stock_cantidad,
+        stock_cantidad=calcular_stock_producto(uow, producto),
         disponible=producto.disponible,
         created_at=producto.created_at,
         updated_at=producto.updated_at,
@@ -83,7 +86,7 @@ def _build_producto_read(producto_repo, ingrediente_repo, producto: Producto, um
 def build_producto_read(session: Session, producto: Producto) -> ProductoRead:
     """Wrapper público para construir ProductoRead."""
     with ProductoUnitOfWork(session) as uow:
-        return _build_producto_read(uow.productos, uow.ingredientes, producto, uow.unidades_medida)
+        return _build_producto_read(uow, producto)
 
 
 def get_all(
@@ -101,10 +104,10 @@ def get_all(
             categoria_id=categoria_id,
             disponible=disponible,
         )
+        items = [_build_producto_read(uow, p) for p in productos]
         if disponible:
-            productos = [p for p in productos if _tiene_stock_ingredientes(uow, p)]
-            total = len(productos)
-        items = [_build_producto_read(uow.productos, uow.ingredientes, p, uow.unidades_medida) for p in productos]
+            items = [p for p in items if p.stock_cantidad > 0]
+            total = len(items)
         return items, total
 
 
@@ -122,6 +125,7 @@ def create(session: Session, producto_data: ProductoCreate) -> Producto:
     with ProductoUnitOfWork(session) as uow:
         ingredientes_data = producto_data.ingredientes
         producto_dict = producto_data.model_dump(exclude={"categoria_ids", "ingredientes"})
+        producto_dict.pop("stock_cantidad", None)
         db_producto = Producto(**producto_dict)
         producto = uow.productos.create(db_producto, producto_data.categoria_ids, ingredientes_data)
         uow.productos.refresh(producto)
@@ -142,6 +146,7 @@ def update(session: Session, db_producto: Producto, producto_data: ProductoUpdat
                 for ing in ingredientes_raw
             ]
 
+        producto_dict.pop("stock_cantidad", None)
         producto_dict["updated_at"] = datetime.now(timezone.utc)
 
         updated = uow.productos.update(db_producto, producto_dict, categoria_ids, ingredientes_data)
@@ -155,10 +160,10 @@ def delete(session: Session, db_producto: Producto):
 
 
 def update_disponibilidad(session: Session, db_producto: Producto, disponible: bool) -> Producto:
-    if disponible and db_producto.stock_cantidad <= 0:
-        from app.core.response import BusinessRuleError
-        raise BusinessRuleError("No se puede habilitar un producto sin stock")
     with ProductoUnitOfWork(session) as uow:
+        if disponible and calcular_stock_producto(uow, db_producto) <= 0:
+            from app.core.response import BusinessRuleError
+            raise BusinessRuleError("No se puede habilitar un producto sin stock de ingredientes")
         updated = uow.productos.update(db_producto, {
             "disponible": disponible,
             "updated_at": datetime.now(timezone.utc),

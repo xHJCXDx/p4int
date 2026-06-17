@@ -17,7 +17,6 @@ function getDefaults(p?: Producto | null): {
   nombre: string;
   descripcion: string;
   precio_base: number;
-  stock_cantidad: number;
   imagenes_url: string[];
   categoria_ids: number[];
   ingredientes: IngredienteEnReceta[];
@@ -26,7 +25,6 @@ function getDefaults(p?: Producto | null): {
     nombre: p?.nombre || '',
     descripcion: p?.descripcion || '',
     precio_base: p?.precio_base || 0,
-    stock_cantidad: p?.stock_cantidad ?? 0,
     imagenes_url: p?.imagenes_url || [],
     categoria_ids: p?.categorias?.map((c) => c.id) || [],
     ingredientes:
@@ -65,8 +63,8 @@ const ProductoModal = ({ isOpen, onClose, onSubmit, productoInitial }: Props) =>
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-2xl w-full lg:w-[80vw] lg:max-w-[80vw] max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div className="bg-white rounded-lg shadow-2xl w-full lg:w-[80vw] lg:max-w-[80vw] max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         <div className="bg-gray-800 text-white p-6 rounded-t-lg">
           <h3 className="text-xl font-bold">
             {productoInitial ? 'Editar Producto' : 'Nuevo Producto'}
@@ -124,27 +122,8 @@ const ProductoModal = ({ isOpen, onClose, onSubmit, productoInitial }: Props) =>
                   step="0.01"
                   min="0"
                   value={field.state.value}
-                  onChange={(e) => field.handleChange(parseFloat(e.target.value) || 0)}
-                  onBlur={field.handleBlur}
-                  className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                />
-                {field.state.meta.errors.map((error, idx) => (
-                  <p key={idx} className="text-red-500 text-xs mt-1">{error}</p>
-                ))}
-              </div>
-            )}
-          </form.Field>
-
-          <form.Field name="stock_cantidad">
-            {(field) => (
-              <div className="mb-4">
-                <label className="block text-gray-700 text-sm font-bold mb-2">Stock</label>
-                <input
-                  type="number"
-                  step="1"
-                  min="0"
-                  value={field.state.value}
-                  onChange={(e) => field.handleChange(parseFloat(e.target.value) || 0)}
+                  onFocus={(e) => { if (field.state.value === 0) e.target.value = ''; }}
+                  onChange={(e) => field.handleChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                   onBlur={field.handleBlur}
                   className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
                 />

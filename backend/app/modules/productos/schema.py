@@ -47,7 +47,6 @@ class ProductoUpdate(ProductoBase):
     precio_base: Optional[Decimal] = None
     imagenes_url: Optional[List[str]] = None
     unidad_venta_id: Optional[int] = None
-    stock_cantidad: Optional[int] = None
     disponible: Optional[bool] = None
     categoria_ids: Optional[List[int]] = None
     ingredientes: Optional[List[IngredienteEnReceta]] = None
