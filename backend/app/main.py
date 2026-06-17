@@ -1,10 +1,38 @@
 import os
+import time
+import logging
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Query
+from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect, Query
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from sqlmodel import Session
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s | %(name)-12s | %(levelname)-5s | %(message)s",
+    datefmt="%H:%M:%S",
+)
+logger = logging.getLogger("p4int")
+
+
+class TimingAndLoggingMiddleware(BaseHTTPMiddleware):
+    """Loguea método, path, status code y tiempo de respuesta de cada request."""
+
+    async def dispatch(self, request: Request, call_next):
+        start = time.perf_counter()
+        response = await call_next(request)
+        elapsed_ms = (time.perf_counter() - start) * 1000
+        logger.info(
+            "%s %s → %s (%.1fms)",
+            request.method,
+            request.url.path,
+            response.status_code,
+            elapsed_ms,
+        )
+        response.headers["X-Process-Time"] = f"{elapsed_ms:.1f}ms"
+        return response
 from app.core.database import create_db_and_tables, engine
 from app.core.rate_limit import limiter
 from app.core.security import verify_token
@@ -59,6 +87,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.add_middleware(TimingAndLoggingMiddleware)
 
 app.include_router(auth_router)
 app.include_router(direccion_router)
@@ -90,6 +119,8 @@ async def websocket_endpoint(
     - ?pedido_id=<id>  → suscribe al canal "pedido:{id}" (clientes)
     - sin pedido_id    → si el token tiene rol ADMIN o PEDIDOS, suscribe al canal "admin"
     """
+    await websocket.accept()
+
     try:
         payload = verify_token(token)
         if payload.get("type") != "access":
@@ -109,7 +140,7 @@ async def websocket_endpoint(
         await websocket.close(code=4003)
         return
 
-    await ws_manager.connect(websocket, channel)
+    ws_manager.connect(websocket, channel)
     try:
         while True:
             await websocket.receive_text()
