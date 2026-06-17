@@ -3,13 +3,13 @@ import { useForm } from '@tanstack/react-form';
 import { Producto, IngredienteEnReceta } from '../types/producto';
 import { productoFormSchema, ProductoFormType } from '../schemas/producto.schema';
 import { useCategorias } from '../hooks/useCategorias';
-import { useIngredientes } from '../hooks/useIngredientes';
+import { useIngredientes, useUnidadesMedida } from '../hooks/useIngredientes';
 import { useUploadImagen } from '../hooks/useUpload';
 
 interface Props {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (producto: ProductoFormType) => void;
+  onSubmit: (producto: ProductoFormType) => Promise<void>;
   productoInitial?: Producto | null;
 }
 
@@ -17,6 +17,7 @@ function getDefaults(p?: Producto | null): {
   nombre: string;
   descripcion: string;
   precio_base: number;
+  stock_cantidad: number;
   imagenes_url: string[];
   categoria_ids: number[];
   ingredientes: IngredienteEnReceta[];
@@ -25,6 +26,7 @@ function getDefaults(p?: Producto | null): {
     nombre: p?.nombre || '',
     descripcion: p?.descripcion || '',
     precio_base: p?.precio_base || 0,
+    stock_cantidad: p?.stock_cantidad ?? 0,
     imagenes_url: p?.imagenes_url || [],
     categoria_ids: p?.categorias?.map((c) => c.id) || [],
     ingredientes:
@@ -40,6 +42,9 @@ function getDefaults(p?: Producto | null): {
 const ProductoModal = ({ isOpen, onClose, onSubmit, productoInitial }: Props) => {
   const { data: categorias = [] } = useCategorias();
   const { data: ingredientes = [] } = useIngredientes();
+  const { data: unidadesMedida = [] } = useUnidadesMedida();
+
+  const umMap = new Map(unidadesMedida.map((um) => [um.id, um]));
   const { mutate: uploadImagen, isPending: isUploading } = useUploadImagen();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -47,8 +52,7 @@ const ProductoModal = ({ isOpen, onClose, onSubmit, productoInitial }: Props) =>
     defaultValues: getDefaults(productoInitial),
     onSubmit: async ({ value }) => {
       const validated = productoFormSchema.parse(value);
-      onSubmit(validated);
-      onClose();
+      await onSubmit(validated);
     },
   });
 
@@ -118,6 +122,26 @@ const ProductoModal = ({ isOpen, onClose, onSubmit, productoInitial }: Props) =>
                 <input
                   type="number"
                   step="0.01"
+                  min="0"
+                  value={field.state.value}
+                  onChange={(e) => field.handleChange(parseFloat(e.target.value) || 0)}
+                  onBlur={field.handleBlur}
+                  className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                />
+                {field.state.meta.errors.map((error, idx) => (
+                  <p key={idx} className="text-red-500 text-xs mt-1">{error}</p>
+                ))}
+              </div>
+            )}
+          </form.Field>
+
+          <form.Field name="stock_cantidad">
+            {(field) => (
+              <div className="mb-4">
+                <label className="block text-gray-700 text-sm font-bold mb-2">Stock</label>
+                <input
+                  type="number"
+                  step="1"
                   min="0"
                   value={field.state.value}
                   onChange={(e) => field.handleChange(parseFloat(e.target.value) || 0)}
@@ -238,9 +262,12 @@ const ProductoModal = ({ isOpen, onClose, onSubmit, productoInitial }: Props) =>
               };
 
               const updateCantidad = (ingId: number, cantidad: number) => {
+                const item = receta.find((r) => r.ingrediente_id === ingId);
+                const um = item ? umMap.get(item.unidad_medida_id) : undefined;
+                const minVal = um?.tipo === 'unidad' ? 1 : 0.001;
                 field.handleChange(
                   receta.map((r) =>
-                    r.ingrediente_id === ingId ? { ...r, cantidad: Math.max(0.001, cantidad) } : r
+                    r.ingrediente_id === ingId ? { ...r, cantidad: Math.max(minVal, cantidad) } : r
                   )
                 );
               };
@@ -282,20 +309,31 @@ const ProductoModal = ({ isOpen, onClose, onSubmit, productoInitial }: Props) =>
                                 </span>
                               )}
                               <span className="ml-1 text-xs text-gray-400">
-                                (stock: {ing.stock_cantidad})
+                                (stock: {ing.stock_cantidad} {umMap.get(ing.unidad_medida_id)?.simbolo ?? ''})
                               </span>
                             </span>
-                            <input
-                              type="number"
-                              min="0.001"
-                              step="0.001"
-                              value={item.cantidad}
-                              onChange={(e) =>
-                                updateCantidad(item.ingrediente_id, parseFloat(e.target.value) || 0.001)
-                              }
-                              className="w-20 text-center border rounded py-1 px-2 text-sm"
-                              title="Cantidad necesaria"
-                            />
+                            {(() => {
+                              const um = umMap.get(item.unidad_medida_id);
+                              const isContable = um?.tipo === 'unidad';
+                              const step = isContable ? '1' : '0.001';
+                              const min = isContable ? '1' : '0.001';
+                              return (
+                                <div className="flex items-center gap-1">
+                                  <input
+                                    type="number"
+                                    min={min}
+                                    step={step}
+                                    value={item.cantidad}
+                                    onChange={(e) =>
+                                      updateCantidad(item.ingrediente_id, parseFloat(e.target.value) || Number(min))
+                                    }
+                                    className="w-20 text-center border rounded py-1 px-2 text-sm"
+                                    title="Cantidad necesaria"
+                                  />
+                                  <span className="text-xs text-gray-500">{um?.simbolo ?? ''}</span>
+                                </div>
+                              );
+                            })()}
                             <label className="flex items-center text-xs gap-1" title="Removible por el cliente">
                               <input
                                 type="checkbox"
@@ -334,7 +372,7 @@ const ProductoModal = ({ isOpen, onClose, onSubmit, productoInitial }: Props) =>
                       </option>
                       {ingredientesDisponibles.map((ing) => (
                         <option key={ing.id} value={ing.id}>
-                          {ing.nombre} {ing.es_alergeno ? '(alergeno)' : ''} — stock: {ing.stock_cantidad}
+                          {ing.nombre} {ing.es_alergeno ? '(alergeno)' : ''} — stock: {ing.stock_cantidad} {umMap.get(ing.unidad_medida_id)?.simbolo ?? ''}
                         </option>
                       ))}
                     </select>

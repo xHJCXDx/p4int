@@ -28,6 +28,7 @@ class IngredienteInProducto(SQLModel):
     es_alergeno: bool
     cantidad: Decimal
     unidad_medida_id: int
+    unidad_medida_simbolo: str = ""
     es_removible: bool
 
 

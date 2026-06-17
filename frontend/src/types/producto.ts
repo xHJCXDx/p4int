@@ -8,6 +8,8 @@ export interface IngredienteInProducto {
   nombre: string;
   es_alergeno: boolean;
   cantidad: number;
+  unidad_medida_id: number;
+  unidad_medida_simbolo: string;
   es_removible: boolean;
 }
 
@@ -35,7 +37,7 @@ export interface IngredienteEnReceta {
 export interface ProductoCreate {
   nombre: string;
   descripcion: string;
-  precio: number;
+  precio_base: number;
   imagenes_url?: string[];
   categoria_ids?: number[];
   ingredientes?: IngredienteEnReceta[];

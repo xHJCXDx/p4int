@@ -1,14 +1,53 @@
 from typing import List, Optional, Tuple
+from decimal import Decimal
 from datetime import datetime, timezone
 from sqlmodel import Session
 from app.modules.productos.model import Producto
 from app.modules.productos.schema import ProductoCreate, ProductoUpdate, ProductoRead, IngredienteInProducto, IngredienteEnReceta
 from app.modules.productos.unit_of_work import ProductoUnitOfWork
+from app.core.constants import convertir_unidad
 
 
-def _build_producto_read(producto_repo, ingrediente_repo, producto: Producto) -> ProductoRead:
+def _tiene_stock_ingredientes(uow, producto: Producto) -> bool:
+    """Verifica si hay stock suficiente de todos los ingredientes para 1 unidad del producto."""
+    links = uow.productos.get_ingrediente_links(producto.id)
+    if not links:
+        return True
+
+    um_cache: dict[int, str] = {}
+
+    def _get_um_codigo(um_id: int) -> str:
+        if um_id not in um_cache:
+            um = uow.unidades_medida.get_by_id(um_id)
+            um_cache[um_id] = um.codigo if um else "u"
+        return um_cache[um_id]
+
+    for link in links:
+        ingrediente = uow.ingredientes.get_by_id(link.ingrediente_id)
+        if not ingrediente:
+            return False
+        codigo_receta = _get_um_codigo(link.unidad_medida_id)
+        codigo_stock = _get_um_codigo(ingrediente.unidad_medida_id) if ingrediente.unidad_medida_id else codigo_receta
+        try:
+            necesario = convertir_unidad(link.cantidad, codigo_receta, codigo_stock)
+        except ValueError:
+            return False
+        if ingrediente.stock_cantidad < necesario:
+            return False
+    return True
+
+
+def _build_producto_read(producto_repo, ingrediente_repo, producto: Producto, um_repo=None) -> ProductoRead:
     """Construye un ProductoRead con ingredientes detallados."""
     links = producto_repo.get_ingrediente_links(producto.id)
+
+    um_cache: dict[int, str] = {}
+
+    def _get_um_simbolo(um_id: int) -> str:
+        if um_id not in um_cache:
+            um = um_repo.get_by_id(um_id) if um_repo else None
+            um_cache[um_id] = um.simbolo if um else ""
+        return um_cache[um_id]
 
     ingredientes_read = []
     for link in links:
@@ -20,6 +59,7 @@ def _build_producto_read(producto_repo, ingrediente_repo, producto: Producto) ->
                 es_alergeno=ingrediente.es_alergeno,
                 cantidad=link.cantidad,
                 unidad_medida_id=link.unidad_medida_id,
+                unidad_medida_simbolo=_get_um_simbolo(link.unidad_medida_id),
                 es_removible=link.es_removible,
             ))
 
@@ -43,7 +83,7 @@ def _build_producto_read(producto_repo, ingrediente_repo, producto: Producto) ->
 def build_producto_read(session: Session, producto: Producto) -> ProductoRead:
     """Wrapper público para construir ProductoRead."""
     with ProductoUnitOfWork(session) as uow:
-        return _build_producto_read(uow.productos, uow.ingredientes, producto)
+        return _build_producto_read(uow.productos, uow.ingredientes, producto, uow.unidades_medida)
 
 
 def get_all(
@@ -61,7 +101,10 @@ def get_all(
             categoria_id=categoria_id,
             disponible=disponible,
         )
-        items = [_build_producto_read(uow.productos, uow.ingredientes, p) for p in productos]
+        if disponible:
+            productos = [p for p in productos if _tiene_stock_ingredientes(uow, p)]
+            total = len(productos)
+        items = [_build_producto_read(uow.productos, uow.ingredientes, p, uow.unidades_medida) for p in productos]
         return items, total
 
 
@@ -112,6 +155,9 @@ def delete(session: Session, db_producto: Producto):
 
 
 def update_disponibilidad(session: Session, db_producto: Producto, disponible: bool) -> Producto:
+    if disponible and db_producto.stock_cantidad <= 0:
+        from app.core.response import BusinessRuleError
+        raise BusinessRuleError("No se puede habilitar un producto sin stock")
     with ProductoUnitOfWork(session) as uow:
         updated = uow.productos.update(db_producto, {
             "disponible": disponible,
@@ -134,16 +180,21 @@ def update_imagenes(session: Session, db_producto: Producto, imagenes_url: list[
 def get_ingredientes(session: Session, producto_id: int) -> list[IngredienteInProducto]:
     with ProductoUnitOfWork(session) as uow:
         links = uow.productos.get_ingrediente_links(producto_id)
+        um_cache: dict[int, str] = {}
         result = []
         for link in links:
             ingrediente = uow.ingredientes.get_by_id(link.ingrediente_id)
             if ingrediente:
+                if link.unidad_medida_id not in um_cache:
+                    um = uow.unidades_medida.get_by_id(link.unidad_medida_id)
+                    um_cache[link.unidad_medida_id] = um.simbolo if um else ""
                 result.append(IngredienteInProducto(
                     id=ingrediente.id,
                     nombre=ingrediente.nombre,
                     es_alergeno=ingrediente.es_alergeno,
                     cantidad=link.cantidad,
                     unidad_medida_id=link.unidad_medida_id,
+                    unidad_medida_simbolo=um_cache[link.unidad_medida_id],
                     es_removible=link.es_removible,
                 ))
         return result
@@ -165,11 +216,15 @@ def add_ingrediente(session: Session, db_producto: Producto, ing_data: Ingredien
 
         uow.productos.update(db_producto, {"updated_at": datetime.now(timezone.utc)})
 
+    with ProductoUnitOfWork(session) as uow2:
+        um = uow2.unidades_medida.get_by_id(ing_data.unidad_medida_id)
+
     return IngredienteInProducto(
         id=ingrediente.id,
         nombre=ingrediente.nombre,
         es_alergeno=ingrediente.es_alergeno,
         cantidad=ing_data.cantidad,
         unidad_medida_id=ing_data.unidad_medida_id,
+        unidad_medida_simbolo=um.simbolo if um else "",
         es_removible=ing_data.es_removible,
     )
