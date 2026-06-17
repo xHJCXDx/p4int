@@ -1,11 +1,14 @@
 """Router para upload de imágenes (solo ADMIN)."""
 
+import logging
 from fastapi import APIRouter, Depends, UploadFile, File, status
 from app.core.response import success_response, error_response, ApiResponse
 from app.core.security import require_roles
 from app.core.constants import RolCode
 from app.modules.uploads import service
 from app.modules.uploads.schema import CloudinaryResponse
+
+logger = logging.getLogger("p4int.uploads")
 
 router = APIRouter(prefix="/api/v1/uploads", tags=["Uploads"])
 
@@ -21,6 +24,7 @@ async def upload_imagen(
     except ValueError as e:
         return error_response(detail=str(e), status_code=400, code="UPLOAD_ERROR")
     except Exception as e:
+        logger.error("Cloudinary upload failed: %s", e, exc_info=True)
         return error_response(detail=f"Error al subir imagen: {e}", status_code=502, code="CLOUDINARY_ERROR")
 
 

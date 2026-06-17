@@ -13,9 +13,7 @@ interface UploadResponse {
 const uploadImagen = async (file: File): Promise<string> => {
   const formData = new FormData();
   formData.append('file', file);
-  const res = await apiClient.post<ApiResponse<UploadResponse>>('/uploads/imagen', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  });
+  const res = await apiClient.post<ApiResponse<UploadResponse>>('/uploads/imagen', formData);
   return res.data.data.secure_url;
 };
 

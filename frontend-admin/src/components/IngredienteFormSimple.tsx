@@ -130,7 +130,8 @@ export function IngredienteFormSimple({
                 min="0"
                 step="0.001"
                 value={field.state.value}
-                onChange={(e) => field.handleChange(parseFloat(e.target.value) || 0)}
+                onFocus={(e) => { if (field.state.value === 0) e.target.value = ''; }}
+                onChange={(e) => field.handleChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                 onBlur={field.handleBlur}
                 placeholder="Ej: 100"
                 className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
