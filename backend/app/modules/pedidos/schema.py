@@ -79,6 +79,10 @@ class AvanzarEstadoRequest(SQLModel):
     motivo: Optional[str] = None
 
 
+class CancelPedidoRequest(SQLModel):
+    motivo: Optional[str] = None
+
+
 # ============ HISTORIAL ESTADO PEDIDO ============
 class HistorialEstadoPedidoCreate(HistorialEstadoPedidoBase):
     pass
@@ -103,7 +107,7 @@ class PedidoDetail(PedidoBase):
     created_at: datetime
     updated_at: datetime
     deleted_at: Optional[datetime] = None
-    items: List[DetallePedidoRead] = []
+    detalles: List[DetallePedidoRead] = []
     historial: List[HistorialEstadoPedidoRead] = []
     pago: Optional[PagoRead] = None
 

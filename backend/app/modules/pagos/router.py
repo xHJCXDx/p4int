@@ -1,11 +1,15 @@
+import logging
 from fastapi import APIRouter, Depends, Request, status
 from sqlmodel import Session
 from app.core.database import get_session
 from app.core.response import success_response, error_response, ApiResponse
 from app.core.security import get_current_user
+from app.core.mercadopago import verify_webhook_signature, get_webhook_secret
 from app.modules.pagos.schema import PagoCreate, PagoRead, PagoCreateResponse
 from app.modules.pagos import service
 from app.modules.usuarios.model import Usuario
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/pagos", tags=["Pagos"])
 
@@ -32,7 +36,18 @@ def crear_pago(
 
 @router.post("/webhook")
 async def webhook_mercadopago(request: Request, session: Session = Depends(get_session)):
-    """Endpoint IPN de MercadoPago. Actualiza estado del pago y del pedido. Notifica WS."""
+    """Endpoint IPN de MercadoPago. Valida x-signature, actualiza estado del pago y del pedido."""
+    x_signature = request.headers.get("x-signature", "")
+    x_request_id = request.headers.get("x-request-id", "")
+    data_id = request.query_params.get("data.id", "")
+
+    if get_webhook_secret():
+        if not x_signature or not verify_webhook_signature(x_signature, x_request_id, data_id):
+            logger.warning("Webhook rechazado: x-signature inválida")
+            return error_response(detail="Firma inválida", status_code=401, code="INVALID_SIGNATURE")
+    else:
+        logger.warning("MERCADOPAGO_WEBHOOK_SECRET no configurado, omitiendo validación de firma")
+
     try:
         body = await request.json()
         result = service.process_webhook(session, body)

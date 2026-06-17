@@ -2,6 +2,7 @@ from sqlmodel import Session
 from app.core.unit_of_work import BaseUnitOfWork
 from app.modules.productos.repository import ProductoRepository
 from app.modules.ingredientes.repository import IngredienteRepository
+from app.modules.catalogo.repository import UnidadMedidaRepository
 
 
 class ProductoUnitOfWork(BaseUnitOfWork):
@@ -11,3 +12,4 @@ class ProductoUnitOfWork(BaseUnitOfWork):
         super().__init__(session)
         self.productos = ProductoRepository(session)
         self.ingredientes = IngredienteRepository(session)
+        self.unidades_medida = UnidadMedidaRepository(session)

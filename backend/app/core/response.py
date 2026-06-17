@@ -29,6 +29,11 @@ class ApiResponse(BaseModel, Generic[T]):
     status_code: int
 
 
+def paginate_offset(page: int, size: int) -> int:
+    """Calcula el offset SQL a partir de page/size."""
+    return (page - 1) * size
+
+
 def success_response(data: Any = None, message: str = "Operación exitosa", status_code: int = 200) -> ApiResponse:
     """Retorna una respuesta exitosa"""
     return ApiResponse(

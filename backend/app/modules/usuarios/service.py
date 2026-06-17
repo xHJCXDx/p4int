@@ -3,6 +3,7 @@ from sqlmodel import Session
 from app.modules.usuarios.model import Usuario
 from app.modules.usuarios.schema import UsuarioUpdate, UsuarioRead
 from app.modules.usuarios.unit_of_work import UsuarioUnitOfWork
+from app.core.response import BusinessRuleError
 
 
 def usuario_to_read(usuario: Usuario) -> UsuarioRead:
@@ -29,12 +30,6 @@ def get_all_paginado(session: Session, limit: int = 10, offset: int = 0, rol_cod
         return uow.usuarios.get_all_paginado(rol_codigo=rol_codigo, limit=limit, offset=offset)
 
 
-def get_user_by_id(session: Session, user_id: int) -> Optional[Usuario]:
-    """Obtiene un usuario por ID."""
-    with UsuarioUnitOfWork(session) as uow:
-        return uow.usuarios.get_by_id(user_id)
-
-
 def update_user_admin(session: Session, usuario_id: int, update_data: UsuarioUpdate) -> Optional[Usuario]:
     """Actualiza un usuario desde el panel admin. Retorna None si no existe."""
     with UsuarioUnitOfWork(session) as uow:
@@ -46,30 +41,29 @@ def update_user_admin(session: Session, usuario_id: int, update_data: UsuarioUpd
     return usuario
 
 
-def delete_user(session: Session, usuario_id: int) -> Optional[str]:
-    """Soft delete de un usuario. Retorna error si no existe, None si ok."""
+def delete_user(session: Session, usuario_id: int) -> None:
+    """Soft delete de un usuario. Lanza BusinessRuleError si no existe."""
     with UsuarioUnitOfWork(session) as uow:
         usuario = uow.usuarios.get_by_id(usuario_id)
         if not usuario:
-            return "Usuario no encontrado"
+            raise BusinessRuleError(detail="Usuario no encontrado", code="NOT_FOUND", status_code=404)
         uow.usuarios.delete(usuario)
-    return None
 
 
-def assign_role(session: Session, usuario_id: int, rol_codigo: str) -> Tuple[Optional[Usuario], Optional[str]]:
-    """Asigna un rol a un usuario. Retorna (usuario, error_message)."""
+def assign_role(session: Session, usuario_id: int, rol_codigo: str) -> Usuario:
+    """Asigna un rol a un usuario. Lanza BusinessRuleError si falla."""
     with UsuarioUnitOfWork(session) as uow:
         usuario = uow.usuarios.get_by_id(usuario_id)
         if not usuario:
-            return None, "Usuario no encontrado"
+            raise BusinessRuleError(detail="Usuario no encontrado", code="NOT_FOUND", status_code=404)
 
         rol = uow.usuarios.get_rol(rol_codigo)
         if not rol:
-            return None, "Rol no encontrado"
+            raise BusinessRuleError(detail="Rol no encontrado", code="NOT_FOUND", status_code=404)
 
         error = uow.usuarios.assign_role(usuario_id, rol_codigo)
         if error:
-            return None, error
+            raise BusinessRuleError(detail=error, code="VALIDATION_ERROR", status_code=400)
 
         uow.usuarios.refresh(usuario)
-    return usuario, None
+    return usuario

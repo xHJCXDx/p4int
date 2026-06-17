@@ -17,4 +17,5 @@ class UnidadMedidaCreate(UnidadMedidaBase):
     codigo: str
 
 class UnidadMedidaRead(UnidadMedidaBase):
+    id: int
     codigo: str

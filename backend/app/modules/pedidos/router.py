@@ -1,22 +1,16 @@
-from typing import Optional
 from fastapi import APIRouter, Depends, status, Query
-from sqlmodel import Session, SQLModel
+from sqlmodel import Session
 from app.core.database import get_session
-from app.core.response import success_response, paginated_response, error_response, ApiResponse, BusinessRuleError
+from app.core.response import success_response, paginated_response, error_response, paginate_offset, ApiResponse, BusinessRuleError
 from app.core.security import get_current_user, require_roles
 from app.core.constants import RolCode
 from app.modules.pedidos.schema import (
-    PedidoCreateFromCheckout, PedidoRead, PedidoDetail,
-    AvanzarEstadoRequest, HistorialEstadoPedidoRead, DetallePedidoRead,
+    PedidoCreateFromCheckout, PedidoRead,
+    AvanzarEstadoRequest, HistorialEstadoPedidoRead,
+    CancelPedidoRequest,
 )
-from app.modules.pagos.schema import PagoRead
 from app.modules.usuarios.model import Usuario
 from app.modules.pedidos import service
-from app.modules.pagos import service as pagos_service
-
-
-class CancelPedidoRequest(SQLModel):
-    motivo: Optional[str] = None
 
 router = APIRouter(prefix="/api/v1/pedidos", tags=["Pedidos"])
 
@@ -29,8 +23,7 @@ def read_pedidos(
     current_user: Usuario = Depends(get_current_user),
 ) -> ApiResponse:
     """Listar propios (CLIENT) o todos (ADMIN/PEDIDOS)."""
-    offset = (page - 1) * size
-    pedidos, total = service.get_all_pedidos(session, size, offset, current_user=current_user)
+    pedidos, total = service.get_all_pedidos(session, size, paginate_offset(page, size), current_user=current_user)
     return paginated_response(
         items=[PedidoRead.model_validate(p) for p in pedidos],
         total=total,
@@ -48,18 +41,7 @@ def read_pedido(
 ) -> ApiResponse:
     """Detalle completo con líneas, trazabilidad y pago."""
     try:
-        pedido = service.get_pedido_with_permission(session, pedido_id, current_user)
-        detalles = service.get_detalles_by_pedido(session, pedido_id)
-        historial = service.get_historial(session, pedido_id)
-        pagos = pagos_service.get_pagos_by_pedido(session, pedido_id)
-        pago = PagoRead.model_validate(pagos[0]) if pagos else None
-
-        detail = PedidoDetail(
-            **pedido.model_dump(),
-            items=[DetallePedidoRead.model_validate(d) for d in detalles],
-            historial=[HistorialEstadoPedidoRead.model_validate(h) for h in historial],
-            pago=pago,
-        )
+        detail = service.get_pedido_detail(session, pedido_id, current_user)
         return success_response(
             data=detail,
             message="Pedido obtenido exitosamente",

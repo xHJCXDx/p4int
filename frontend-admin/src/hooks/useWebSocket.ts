@@ -12,10 +12,13 @@ const ESTADOS_LABEL: Record<string, string> = {
 };
 
 interface WsMessage {
-  type: string;
+  event: string;
   pedido_id: number;
-  estado_desde: string;
-  estado_hacia: string;
+  estado_anterior: string;
+  estado_nuevo: string;
+  usuario_id?: number | null;
+  motivo?: string | null;
+  timestamp?: string;
 }
 
 const MAX_RETRIES = 5;
@@ -44,11 +47,13 @@ export function useWebSocket() {
     ws.onmessage = (event) => {
       try {
         const msg: WsMessage = JSON.parse(event.data);
-        if (msg.type === 'pedido_estado') {
+        if (msg.event === 'estado_cambiado' || msg.event === 'pedido_cancelado') {
           queryClient.invalidateQueries({ queryKey: ['pedidos'] });
           queryClient.invalidateQueries({ queryKey: ['pedido', msg.pedido_id] });
-          const label = ESTADOS_LABEL[msg.estado_hacia] ?? msg.estado_hacia;
+          const label = ESTADOS_LABEL[msg.estado_nuevo] ?? msg.estado_nuevo;
           showToast(`Pedido #${msg.pedido_id}: ${label}`, 'info');
+        } else if (msg.event === 'pedido_creado') {
+          queryClient.invalidateQueries({ queryKey: ['pedidos'] });
         }
       } catch {
         // ignore malformed messages
@@ -57,7 +62,7 @@ export function useWebSocket() {
 
     ws.onclose = (event) => {
       wsRef.current = null;
-      if (event.code === 4001) return; // auth rejected, don't retry
+      if (event.code === 4001 || event.code === 4003) return; // auth rejected, don't retry
 
       if (retriesRef.current < MAX_RETRIES) {
         const delay = BASE_DELAY * Math.pow(2, retriesRef.current);

@@ -21,8 +21,8 @@ const createPedidoFromCheckout = async (data: PedidoCheckoutCreate): Promise<Ped
   return response.data.data;
 };
 
-const deletePedido = async (id: number): Promise<void> => {
-  await apiClient.delete(`${API_URL}/${id}`);
+const deletePedido = async (id: number, motivo?: string): Promise<void> => {
+  await apiClient.delete(`${API_URL}/${id}`, { data: { motivo } });
 };
 
 const transitionEstado = async (
@@ -63,7 +63,7 @@ export const useCreatePedido = () => {
 export const useDeletePedido = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (id: number) => deletePedido(id),
+    mutationFn: ({ id, motivo }: { id: number; motivo?: string }) => deletePedido(id, motivo),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['pedidos'] }),
   });
 };

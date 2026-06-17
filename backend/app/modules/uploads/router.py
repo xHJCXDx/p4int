@@ -20,6 +20,8 @@ async def upload_imagen(
         return success_response(data=CloudinaryResponse(**result).model_dump(), message="Imagen subida exitosamente")
     except ValueError as e:
         return error_response(detail=str(e), status_code=400, code="UPLOAD_ERROR")
+    except Exception as e:
+        return error_response(detail=f"Error al subir imagen: {e}", status_code=502, code="CLOUDINARY_ERROR")
 
 
 @router.delete("/imagen/{public_id:path}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(require_roles(RolCode.ADMIN))])

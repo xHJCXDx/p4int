@@ -26,7 +26,7 @@ class Pedido(PedidoBase, table=True):
     deleted_at: Optional[datetime] = None
     detalles: List["DetallePedido"] = Relationship(back_populates="pedido", cascade_delete=True)
     pagos: List["Pago"] = Relationship(back_populates="pedido", cascade_delete=True)  # noqa: F821
-    historial: List["HistorialEstadoPedido"] = Relationship(back_populates="pedido", cascade_delete=True)
+    historial: List["HistorialEstadoPedido"] = Relationship(back_populates="pedido")
 
 
 class DetallePedidoBase(SQLModel):

@@ -34,6 +34,12 @@ def get_tree(session: Session) -> List[dict]:
     return roots
 
 
+def get_all_as_read(session: Session, limit: int = 100, offset: int = 0, parent_id: Optional[int] = None) -> Tuple[List[CategoriaRead], int]:
+    """Obtiene categorías paginadas ya serializadas como CategoriaRead."""
+    categorias, total = get_all(session, limit, offset, parent_id)
+    return [build_categoria_read(session, c) for c in categorias], total
+
+
 def get_all(session: Session, limit: int = 100, offset: int = 0, parent_id: Optional[int] = None) -> Tuple[List[Categoria], int]:
     with CategoriaUnitOfWork(session) as uow:
         if parent_id is not None:

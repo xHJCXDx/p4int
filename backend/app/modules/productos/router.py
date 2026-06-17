@@ -2,7 +2,7 @@ from typing import Annotated, Optional
 from fastapi import APIRouter, Depends, status, Query
 from sqlmodel import Session
 from app.core.database import get_session
-from app.core.response import success_response, paginated_response, error_response, ApiResponse
+from app.core.response import success_response, paginated_response, error_response, paginate_offset, ApiResponse
 from app.core.security import require_roles
 from app.core.constants import RolCode
 from app.modules.productos.schema import ProductoCreate, ProductoUpdate, DisponibilidadUpdate, ImagenesUpdate, IngredienteEnReceta
@@ -20,9 +20,8 @@ def read_productos(
     search: Annotated[Optional[str], Query(description="Buscar por nombre")] = None,
 ) -> ApiResponse:
     """Listado público de productos con filtros: categoría, disponibilidad, búsqueda."""
-    offset = (page - 1) * size
     items, total = service.get_all(
-        session, size, offset,
+        session, size, paginate_offset(page, size),
         busqueda=search,
         categoria_id=categoria,
         disponible=disponible,

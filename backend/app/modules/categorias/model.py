@@ -1,14 +1,14 @@
 from typing import List, Optional
 from datetime import datetime, timezone
 from sqlmodel import Field, Relationship, SQLModel
-from sqlalchemy import Column, ForeignKey, Integer
+from sqlalchemy import Column, ForeignKey, Integer, Text
 from app.core.types import PortableBigInt
 from app.modules.productos.model import ProductoCategoriaLink
 
 class CategoriaBase(SQLModel):
     nombre: str = Field(index=True, unique=True, max_length=100)
     descripcion: Optional[str] = None
-    imagen_url: Optional[str] = None
+    imagen_url: Optional[str] = Field(default=None, sa_column=Column(Text, nullable=True))
 
 class Categoria(CategoriaBase, table=True):
     id: Optional[int] = Field(default=None, sa_column=Column(PortableBigInt, primary_key=True, autoincrement=True))

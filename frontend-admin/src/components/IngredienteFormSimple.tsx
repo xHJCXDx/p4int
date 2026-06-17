@@ -128,8 +128,9 @@ export function IngredienteFormSimple({
               <input
                 type="number"
                 min="0"
+                step="0.001"
                 value={field.state.value}
-                onChange={(e) => field.handleChange(parseInt(e.target.value) || 0)}
+                onChange={(e) => field.handleChange(parseFloat(e.target.value) || 0)}
                 onBlur={field.handleBlur}
                 placeholder="Ej: 100"
                 className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 ${

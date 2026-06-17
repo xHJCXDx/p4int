@@ -2,8 +2,10 @@ from typing import Optional
 from decimal import Decimal
 from datetime import datetime, timezone
 from sqlmodel import Field, Relationship, SQLModel
-from sqlalchemy import Numeric, Column
+from sqlalchemy import Numeric, Column, String, CheckConstraint
 from app.core.types import PortableBigInt
+
+MP_STATUS_VALUES = ("pending", "approved", "rejected")
 
 
 class PagoBase(SQLModel):
@@ -13,6 +15,9 @@ class PagoBase(SQLModel):
 
 
 class Pago(PagoBase, table=True):
+    __table_args__ = (
+        CheckConstraint("mp_status IN ('pending', 'approved', 'rejected')", name="ck_pago_mp_status"),
+    )
     id: Optional[int] = Field(default=None, sa_column=Column(PortableBigInt, primary_key=True, autoincrement=True))
     mp_payment_id: Optional[int] = Field(default=None, sa_column=Column(PortableBigInt, unique=True, nullable=True))
     mp_status_detail: Optional[str] = Field(default=None, max_length=100)
