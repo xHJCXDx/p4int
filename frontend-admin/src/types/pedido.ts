@@ -1,6 +1,14 @@
 export interface LineaVenta {
   producto_id: number;
   cantidad: number;
+  personalizacion?: number[];
+}
+
+export interface PedidoCheckoutCreate {
+  direccion_id?: number;
+  forma_pago_codigo: string;
+  notas?: string;
+  items: LineaVenta[];
 }
 
 export interface DetalleInPedido {

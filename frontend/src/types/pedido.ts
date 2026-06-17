@@ -1,6 +1,7 @@
 export interface LineaVenta {
   producto_id: number;
   cantidad: number;
+  personalizacion?: number[];
 }
 
 export interface PedidoCheckoutCreate {

@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient, { ApiResponse, PaginatedData } from '../api/axios';
-import { Pedido } from '../types/pedido';
+import { Pedido, PedidoCheckoutCreate } from '../types/pedido';
 
 const API_URL = '/pedidos';
 
@@ -16,15 +16,13 @@ const fetchPedido = async (id: number): Promise<Pedido> => {
   return response.data.data;
 };
 
-const createPedido = async (
-  data: Omit<Pedido, 'id' | 'created_at' | 'updated_at' | 'deleted_at'>
-): Promise<Pedido> => {
+const createPedido = async (data: PedidoCheckoutCreate): Promise<Pedido> => {
   const response = await apiClient.post<ApiResponse<Pedido>>(API_URL, data);
   return response.data.data;
 };
 
-const deletePedido = async (id: number): Promise<void> => {
-  await apiClient.delete(`${API_URL}/${id}`);
+const deletePedido = async (id: number, motivo?: string): Promise<void> => {
+  await apiClient.delete(`${API_URL}/${id}`, { data: { motivo } });
 };
 
 const transitionEstado = async (
@@ -58,8 +56,7 @@ export const useCreatePedido = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: Omit<Pedido, 'id' | 'created_at' | 'updated_at' | 'deleted_at'>) =>
-      createPedido(data),
+    mutationFn: (data: PedidoCheckoutCreate) => createPedido(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pedidos'] });
     },
@@ -70,7 +67,7 @@ export const useDeletePedido = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (id: number) => deletePedido(id),
+    mutationFn: ({ id, motivo }: { id: number; motivo?: string }) => deletePedido(id, motivo),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pedidos'] });
     },

@@ -2,10 +2,10 @@ from typing import Optional
 from fastapi import APIRouter, Depends, Query
 from sqlmodel import Session
 from app.core.database import get_session
-from app.core.response import success_response, paginated_response, error_response, ApiResponse
+from app.core.response import success_response, paginated_response, error_response, paginate_offset, ApiResponse, BusinessRuleError
 from app.core.security import require_roles
 from app.core.constants import RolCode
-from app.modules.usuarios.schema import UsuarioUpdate
+from app.modules.usuarios.schema import UsuarioUpdate, RolRead
 from app.modules.usuarios import service as usuario_service
 from app.modules.usuarios.service import usuario_to_read
 from app.admin import service as admin_service
@@ -25,7 +25,7 @@ def listar_roles(session: Session = Depends(get_session)) -> ApiResponse:
     """Listado de roles del sistema."""
     roles = usuario_service.get_all_roles(session)
     return success_response(
-        data=[{"codigo": r.codigo, "nombre": r.nombre, "descripcion": r.descripcion} for r in roles],
+        data=[RolRead.model_validate(r, from_attributes=True) for r in roles],
         message="Roles listados",
     )
 
@@ -37,8 +37,7 @@ def listar_usuarios(
     size: int = Query(10, ge=1, le=100, description="Elementos por página"),
     rol: Optional[str] = Query(None, description="Filtrar por rol")
 ) -> ApiResponse:
-    offset = (page - 1) * size
-    usuarios, total = usuario_service.get_all_paginado(session, limit=size, offset=offset, rol_codigo=rol)
+    usuarios, total = usuario_service.get_all_paginado(session, limit=size, offset=paginate_offset(page, size), rol_codigo=rol)
 
     return paginated_response(
         items=[usuario_to_read(u) for u in usuarios],
@@ -70,26 +69,25 @@ def eliminar_usuario(
     usuario_id: int,
     session: Session = Depends(get_session)
 ) -> ApiResponse:
-    error = usuario_service.delete_user(session, usuario_id)
-    if error:
-        return error_response(detail=error, status_code=404, code="NOT_FOUND")
+    try:
+        usuario_service.delete_user(session, usuario_id)
+        return success_response(message="Usuario eliminado", status_code=204)
+    except BusinessRuleError as e:
+        return error_response(detail=e.detail, status_code=e.status_code, code=e.code)
 
-    return success_response(message="Usuario eliminado", status_code=204)
 
-
-@router.post("/usuarios/{usuario_id}/roles", dependencies=[Depends(require_roles(RolCode.ADMIN))])
+@router.patch("/usuarios/{usuario_id}/roles", dependencies=[Depends(require_roles(RolCode.ADMIN))])
 def asignar_rol(
     usuario_id: int,
     rol_codigo: str = Query(...),
     session: Session = Depends(get_session)
 ) -> ApiResponse:
-    usuario, error = usuario_service.assign_role(session, usuario_id, rol_codigo)
-    if error:
-        status_code = 404 if "no encontrado" in error else 400
-        return error_response(detail=error, status_code=status_code, code="NOT_FOUND" if status_code == 404 else "VALIDATION_ERROR")
-
-    return success_response(
-        data=usuario_to_read(usuario),
-        message="Rol asignado",
-        status_code=201
-    )
+    try:
+        usuario = usuario_service.assign_role(session, usuario_id, rol_codigo)
+        return success_response(
+            data=usuario_to_read(usuario),
+            message="Rol asignado",
+            status_code=201
+        )
+    except BusinessRuleError as e:
+        return error_response(detail=e.detail, status_code=e.status_code, code=e.code)

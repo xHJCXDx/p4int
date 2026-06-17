@@ -8,7 +8,7 @@ class RolRead(BaseModel):
     """Schema para leer un Rol."""
     codigo: str
     nombre: str
-    descripcion: str
+    descripcion: Optional[str] = None
 
 
 class UsuarioCreate(BaseModel):
