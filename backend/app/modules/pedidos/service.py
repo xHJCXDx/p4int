@@ -1,7 +1,7 @@
 from typing import List, Optional, Tuple
 from decimal import Decimal
-from datetime import datetime, timezone
-from sqlmodel import Session
+from datetime import datetime, timezone, timedelta
+from sqlmodel import Session, select
 from app.modules.pedidos.model import Pedido, DetallePedido, HistorialEstadoPedido
 from app.modules.pedidos.schema import PedidoCreate, PedidoCreateFromCheckout, PedidoUpdate, DetallePedidoCreate
 from app.modules.pedidos.unit_of_work import PedidoUnitOfWork
@@ -398,6 +398,82 @@ def cancel_pedido(session: Session, pedido: Pedido, current_user: Usuario, motiv
         session, pedido.id, "CANCELADO",
         usuario_id=current_user.id, motivo=motivo
     )
+
+
+def cancel_expired_pedidos(session: Session, timeout_minutes: int = 10) -> int:
+    """
+    Cancela pedidos PENDIENTE que superaron el timeout sin pago confirmado.
+    Restaura el stock de ingredientes descontado al crear el pedido.
+    Retorna la cantidad de pedidos cancelados.
+    """
+    cutoff = datetime.now(timezone.utc) - timedelta(minutes=timeout_minutes)
+
+    statement = (
+        select(Pedido)
+        .where(
+            Pedido.estado_codigo == "PENDIENTE",
+            Pedido.deleted_at.is_(None),
+            Pedido.created_at <= cutoff,
+        )
+    )
+    pedidos_expirados = list(session.exec(statement).all())
+
+    if not pedidos_expirados:
+        return 0
+
+    with PedidoUnitOfWork(session) as uow:
+        _um_cache: dict[int, str] = {}
+
+        def _get_um_codigo(um_id: int) -> str:
+            if um_id not in _um_cache:
+                um = uow.unidades_medida.get_by_id(um_id)
+                if um:
+                    _um_cache[um_id] = um.codigo
+            return _um_cache.get(um_id, "u")
+
+        for pedido in pedidos_expirados:
+            detalles = uow.detalles.get_by_pedido(pedido.id)
+
+            for detalle in detalles:
+                producto = uow.productos.get_by_id(detalle.producto_id)
+                if not producto:
+                    continue
+
+                links = uow.productos.get_ingrediente_links(producto.id)
+                for link in links:
+                    ingrediente = uow.ingredientes.get_by_id(link.ingrediente_id)
+                    if not ingrediente:
+                        continue
+
+                    total_receta = link.cantidad * detalle.cantidad
+                    codigo_receta = _get_um_codigo(link.unidad_medida_id)
+                    codigo_stock = _get_um_codigo(ingrediente.unidad_medida_id) if ingrediente.unidad_medida_id else codigo_receta
+                    total_en_stock = convertir_unidad(total_receta, codigo_receta, codigo_stock)
+
+                    uow.ingredientes.update(ingrediente, {
+                        "stock_cantidad": ingrediente.stock_cantidad + total_en_stock
+                    })
+
+            uow.pedidos.update_estado(pedido, "CANCELADO")
+            uow.pedidos.update(pedido, {"motivo_cancelacion": "Tiempo de pago expirado"})
+
+            historial = HistorialEstadoPedido(
+                pedido_id=pedido.id,
+                estado_desde="PENDIENTE",
+                estado_hacia="CANCELADO",
+                usuario_id=None,
+                motivo="Tiempo de pago expirado (automático)",
+            )
+            uow.historial.create(historial)
+
+    for pedido in pedidos_expirados:
+        _notify_estado_change(
+            pedido, "PENDIENTE", "CANCELADO",
+            motivo="Tiempo de pago expirado (automático)",
+            event="pedido_cancelado",
+        )
+
+    return len(pedidos_expirados)
 
 
 def create_detalle_pedido(session: Session, pedido_id: int, detalle_data: DetallePedidoCreate) -> DetallePedido:

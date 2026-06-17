@@ -1,5 +1,6 @@
 import os
 import time
+import asyncio
 import logging
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect, Query
@@ -67,7 +68,24 @@ async def lifespan(app: FastAPI):
         ingredientes = seed_ingredientes(session)
         categorias = seed_categorias(session)
         seed_productos(session, categorias, ingredientes)
+
+    async def expire_pending_orders():
+        timeout = int(os.getenv("PEDIDO_TIMEOUT_MINUTES", "10"))
+        interval = int(os.getenv("PEDIDO_CHECK_INTERVAL_SECONDS", "60"))
+        while True:
+            await asyncio.sleep(interval)
+            try:
+                with Session(engine) as session:
+                    from app.modules.pedidos.service import cancel_expired_pedidos
+                    count = cancel_expired_pedidos(session, timeout)
+                    if count:
+                        logger.info("Auto-cancelados %d pedido(s) expirado(s)", count)
+            except Exception as e:
+                logger.error("Error en auto-cancel de pedidos: %s", e)
+
+    task = asyncio.create_task(expire_pending_orders())
     yield
+    task.cancel()
 
 app = FastAPI(lifespan=lifespan)
 app.state.limiter = limiter
