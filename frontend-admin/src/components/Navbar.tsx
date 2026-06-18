@@ -30,7 +30,7 @@ const Navbar = () => {
     <nav className="bg-gray-800 p-4 shadow-md">
       <div className="container mx-auto flex justify-between items-center">
         <Link to="/" className="text-white text-2xl font-bold hover:text-gray-100 transition-colors">
-          Admin - Tienda
+          Tienda
         </Link>
 
         <div className="flex gap-6 items-center">
