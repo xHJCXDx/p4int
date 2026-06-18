@@ -15,10 +15,10 @@ class ProductoRepository(BaseRepository[Producto]):
     def __init__(self, session: Session):
         super().__init__(session, Producto)
 
-    def get_all(
+    def list_all(
         self,
+        skip: int = 0,
         limit: int = 100,
-        offset: int = 0,
         busqueda: Optional[str] = None,
         categoria_id: Optional[int] = None,
         disponible: Optional[bool] = None,
@@ -48,7 +48,7 @@ class ProductoRepository(BaseRepository[Producto]):
             count_statement = count_statement.where(Producto.disponible == disponible)
 
         total = self.session.exec(count_statement).one()
-        statement = statement.offset(offset).limit(limit)
+        statement = statement.offset(skip).limit(limit)
         items = self.session.exec(statement).unique().all()
 
         return items, total
@@ -164,7 +164,6 @@ class ProductoRepository(BaseRepository[Producto]):
         )
         return list(self.session.exec(statement).all())
 
-    def delete(self, db_producto: Producto) -> None:
+    def soft_delete(self, db_producto: Producto) -> None:
         """Soft delete a producto"""
-        db_producto.deleted_at = datetime.now(timezone.utc)
-        self.session.add(db_producto)
+        super().soft_delete(db_producto)

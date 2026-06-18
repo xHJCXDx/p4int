@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from typing import TypeVar, Generic, List, Optional, Type
 from sqlmodel import Session, select, func
 
@@ -10,14 +11,15 @@ class BaseRepository(Generic[T]):
         self.session = session
         self.model = model
 
-    def get_all(self, limit: int = 100, offset: int = 0) -> tuple[List[T], int]:
-        statement = select(self.model).offset(offset).limit(limit)
+    def list_all(self, skip: int = 0, limit: int = 100) -> tuple[List[T], int]:
+        statement = select(self.model).offset(skip).limit(limit)
         items = self.session.exec(statement).all()
-
-        count_statement = select(func.count()).select_from(self.model)
-        total = self.session.exec(count_statement).one()
-
+        total = self.count()
         return items, total
+
+    def count(self) -> int:
+        count_statement = select(func.count()).select_from(self.model)
+        return self.session.exec(count_statement).one()
 
     def get_by_id(self, entity_id: int) -> Optional[T]:
         return self.session.get(self.model, entity_id)
@@ -32,7 +34,11 @@ class BaseRepository(Generic[T]):
         self.session.add(db_obj)
         return db_obj
 
-    def delete(self, db_obj: T) -> None:
+    def soft_delete(self, entity: T) -> None:
+        entity.deleted_at = datetime.now(timezone.utc)
+        self.session.add(entity)
+
+    def hard_delete(self, db_obj: T) -> None:
         self.session.delete(db_obj)
 
     def flush(self) -> None:

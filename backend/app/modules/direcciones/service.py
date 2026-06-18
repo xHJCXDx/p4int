@@ -3,6 +3,7 @@
 from typing import Tuple, List, Optional
 from datetime import datetime, timezone
 from sqlmodel import Session
+from app.core.response import BusinessRuleError
 from app.modules.direcciones.model import DireccionEntrega
 from app.modules.direcciones.schema import DireccionCreate, DireccionUpdate
 from app.modules.direcciones.unit_of_work import DireccionEntregaUnitOfWork
@@ -27,7 +28,7 @@ def get_direccion_for_user(session: Session, direccion_id: int, usuario_id: int)
         if not direccion:
             raise ValueError("Dirección no encontrada")
         if direccion.usuario_id != usuario_id:
-            raise PermissionError("No tienes permiso")
+            raise BusinessRuleError("No tienes permiso")
         return direccion
 
 
@@ -77,4 +78,4 @@ def update_direccion(session: Session, direccion: DireccionEntrega, data: Direcc
 def delete_direccion(session: Session, direccion: DireccionEntrega) -> None:
     """Soft delete de una dirección."""
     with DireccionEntregaUnitOfWork(session) as uow:
-        uow.direcciones.delete(direccion)
+        uow.direcciones.soft_delete(direccion)

@@ -51,6 +51,14 @@ async def webhook_mercadopago(request: Request, session: Session = Depends(get_s
     try:
         body = await request.json()
         result = service.process_webhook(session, body)
+        if result and result.get("transition_needed"):
+            from app.modules.pedidos.service import transition_estado
+            pedido_id = result["pedido_id"]
+            new_status = result["new_status"]
+            try:
+                transition_estado(session, pedido_id, new_status, usuario_id=None)
+            except ValueError:
+                logger.info("Pedido %s ya fue transicionado a %s", pedido_id, new_status)
         return {"status": "ok"}
     except ValueError as e:
         return error_response(detail=str(e), status_code=400, code="WEBHOOK_ERROR")

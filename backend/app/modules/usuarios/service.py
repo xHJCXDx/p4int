@@ -47,7 +47,7 @@ def delete_user(session: Session, usuario_id: int) -> None:
         usuario = uow.usuarios.get_by_id(usuario_id)
         if not usuario:
             raise BusinessRuleError(detail="Usuario no encontrado", code="NOT_FOUND", status_code=404)
-        uow.usuarios.delete(usuario)
+        uow.usuarios.soft_delete(usuario)
 
 
 def assign_role(session: Session, usuario_id: int, rol_codigo: str) -> Usuario:

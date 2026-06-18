@@ -11,9 +11,9 @@ class IngredienteRepository(BaseRepository[Ingrediente]):
     def __init__(self, session: Session):
         super().__init__(session, Ingrediente)
 
-    def get_all(self, limit: int = 100, offset: int = 0) -> Tuple[List[Ingrediente], int]:
+    def list_all(self, skip: int = 0, limit: int = 100) -> Tuple[List[Ingrediente], int]:
         """Get all ingredientes (excluding soft-deleted) with pagination"""
-        statement = select(Ingrediente).where(Ingrediente.deleted_at.is_(None)).offset(offset).limit(limit)
+        statement = select(Ingrediente).where(Ingrediente.deleted_at.is_(None)).offset(skip).limit(limit)
         items = self.session.exec(statement).all()
 
         count_statement = select(func.count(Ingrediente.id)).where(Ingrediente.deleted_at.is_(None))
@@ -33,7 +33,6 @@ class IngredienteRepository(BaseRepository[Ingrediente]):
             return None
         return ingrediente
 
-    def delete(self, db_ingrediente: Ingrediente) -> None:
+    def soft_delete(self, db_ingrediente: Ingrediente) -> None:
         """Soft delete an ingrediente"""
-        db_ingrediente.deleted_at = datetime.now(timezone.utc)
-        self.session.add(db_ingrediente)
+        super().soft_delete(db_ingrediente)

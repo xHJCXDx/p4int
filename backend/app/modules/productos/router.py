@@ -2,7 +2,7 @@ from typing import Annotated, Optional
 from fastapi import APIRouter, Depends, status, Query
 from sqlmodel import Session
 from app.core.database import get_session
-from app.core.response import success_response, paginated_response, error_response, paginate_offset, ApiResponse
+from app.core.response import success_response, paginated_response, error_response, paginate_offset, ApiResponse, BusinessRuleError
 from app.core.security import require_roles
 from app.core.constants import RolCode
 from app.modules.productos.schema import ProductoCreate, ProductoUpdate, DisponibilidadUpdate, ImagenesUpdate, IngredienteEnReceta
@@ -122,5 +122,5 @@ def add_producto_ingrediente(producto_id: int, body: IngredienteEnReceta, sessio
     try:
         result = service.add_ingrediente(session, db_producto, body)
         return success_response(data=result, message="Ingrediente asociado", status_code=201)
-    except ValueError as e:
+    except BusinessRuleError as e:
         return error_response(detail=str(e), status_code=400, code="VALIDATION_ERROR")

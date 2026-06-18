@@ -4,7 +4,6 @@ from datetime import datetime, timedelta, timezone
 from sqlmodel import Session
 from app.modules.usuarios.model import Usuario, RefreshToken
 from app.modules.usuarios.schema import UsuarioCreate, UsuarioUpdate, TokenResponse
-from app.modules.usuarios.service import usuario_to_read
 from app.core.security import (
     hash_password, verify_password,
     create_access_token, create_refresh_token, verify_token,

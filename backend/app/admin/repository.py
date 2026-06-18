@@ -1,6 +1,7 @@
 """Repository para consultas del panel admin."""
 
-from typing import Dict, Any, List, Tuple
+from decimal import Decimal
+from typing import List, Tuple
 from sqlmodel import Session, select, func
 from app.modules.usuarios.model import Usuario
 from app.modules.pedidos.model import Pedido
@@ -29,10 +30,10 @@ class AdminRepository:
             .group_by(Pedido.estado_codigo)
         ).all()
 
-    def get_ingresos_totales(self) -> float:
+    def get_ingresos_totales(self) -> Decimal:
         result = self.session.exec(
             select(func.coalesce(func.sum(Pedido.total), 0))
             .where(Pedido.deleted_at.is_(None))
             .where(Pedido.estado_codigo.notin_(["CANCELADO"]))
         ).one()
-        return float(result)
+        return Decimal(str(result))

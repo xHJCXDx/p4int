@@ -1,10 +1,9 @@
 """Router para Direcciones de Entrega."""
 
-from typing import Optional
-from fastapi import APIRouter, Depends, status, Query
+from fastapi import APIRouter, Depends, status, Query, Response
 from sqlmodel import Session
 from app.core.database import get_session
-from app.core.response import success_response, paginated_response, error_response, paginate_offset, ApiResponse
+from app.core.response import success_response, paginated_response, error_response, paginate_offset, ApiResponse, BusinessRuleError
 from app.core.security import get_current_user
 from app.modules.direcciones.schema import DireccionCreate, DireccionRead, DireccionUpdate
 from app.modules.direcciones.model import DireccionEntrega
@@ -46,7 +45,7 @@ def get_direccion(
             data=DireccionRead.model_validate(direccion),
             message="Dirección obtenida"
         )
-    except PermissionError as e:
+    except BusinessRuleError as e:
         return error_response(detail=str(e), status_code=403, code="FORBIDDEN")
     except ValueError as e:
         return error_response(detail=str(e), status_code=404, code="NOT_FOUND")
@@ -85,7 +84,7 @@ def actualizar_direccion(
             data=DireccionRead.model_validate(actualizada),
             message="Dirección actualizada"
         )
-    except PermissionError as e:
+    except BusinessRuleError as e:
         return error_response(detail=str(e), status_code=403, code="FORBIDDEN")
     except ValueError as e:
         return error_response(detail=str(e), status_code=404, code="NOT_FOUND")
@@ -93,18 +92,18 @@ def actualizar_direccion(
         return error_response(detail=str(e), status_code=400, code="VALIDATION_ERROR")
 
 
-@router.delete("/{direccion_id}")
+@router.delete("/{direccion_id}", status_code=status.HTTP_204_NO_CONTENT)
 def eliminar_direccion(
     direccion_id: int,
     session: Session = Depends(get_session),
     current_user: Usuario = Depends(get_current_user)
-) -> ApiResponse:
+):
     """Elimina una dirección del usuario autenticado."""
     try:
         direccion = service.get_direccion_for_user(session, direccion_id, current_user.id)
         service.delete_direccion(session, direccion)
-        return success_response(message="Dirección eliminada", status_code=204)
-    except PermissionError as e:
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
+    except BusinessRuleError as e:
         return error_response(detail=str(e), status_code=403, code="FORBIDDEN")
     except ValueError as e:
         return error_response(detail=str(e), status_code=404, code="NOT_FOUND")
@@ -124,7 +123,7 @@ def marcar_principal(
             data=DireccionRead.model_validate(actualizada),
             message="Dirección marcada como principal"
         )
-    except PermissionError as e:
+    except BusinessRuleError as e:
         return error_response(detail=str(e), status_code=403, code="FORBIDDEN")
     except ValueError as e:
         return error_response(detail=str(e), status_code=404, code="NOT_FOUND")

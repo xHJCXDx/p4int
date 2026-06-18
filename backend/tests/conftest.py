@@ -13,8 +13,9 @@ from sqlmodel.pool import StaticPool
 from app.main import app
 from app.core.database import get_session
 from app.core.constants import ROLES
-from app.core.security import hash_password, create_access_token
+from app.core.security import hash_password, create_access_token, set_user_fetcher
 from app.core.rate_limit import limiter
+from app.modules.usuarios import fetch_user_by_id
 from app.modules.usuarios.model import Usuario, Rol, UsuarioRolLink
 
 
@@ -57,6 +58,8 @@ def client_fixture(session):
     limiter.enabled = False
 
     # Reemplazar lifespan para que no ejecute seeds contra PostgreSQL real
+    set_user_fetcher(fetch_user_by_id)
+
     @asynccontextmanager
     async def _test_lifespan(app):
         yield

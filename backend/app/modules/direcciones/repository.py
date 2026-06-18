@@ -41,7 +41,6 @@ class DireccionEntregaRepository(BaseRepository[DireccionEntrega]):
         )
         return self.session.exec(statement).first()
 
-    def delete(self, db_direccion: DireccionEntrega) -> None:
+    def soft_delete(self, db_direccion: DireccionEntrega) -> None:
         """Soft delete de una dirección."""
-        db_direccion.deleted_at = datetime.now(timezone.utc)
-        self.session.add(db_direccion)
+        super().soft_delete(db_direccion)

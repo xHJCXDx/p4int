@@ -1,8 +1,6 @@
-from typing import List, Optional
 from decimal import Decimal
 from datetime import date
 from sqlmodel import Session, select, func
-from sqlalchemy import case
 from app.modules.pedidos.model import Pedido, DetallePedido
 from app.modules.pagos.model import Pago
 
@@ -138,11 +136,6 @@ class EstadisticasRepository:
             inicio_mes = func.date_trunc("month", func.current_timestamp())
         else:
             inicio_mes = func.strftime("%Y-%m-01", func.current_timestamp())
-
-        base = select(Pedido).where(
-            Pedido.deleted_at.is_(None),
-            Pedido.estado_codigo.notin_(ESTADOS_TERMINALES_EXCLUIDOS),
-        )
 
         # Ventas hoy
         ventas_hoy_stmt = select(

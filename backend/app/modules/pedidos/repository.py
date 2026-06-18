@@ -12,13 +12,13 @@ class PedidoRepository(BaseRepository[Pedido]):
     def __init__(self, session: Session):
         super().__init__(session, Pedido)
 
-    def get_all(self, limit: int = 100, offset: int = 0) -> Tuple[List[Pedido], int]:
+    def list_all(self, skip: int = 0, limit: int = 100) -> Tuple[List[Pedido], int]:
         """Get all pedidos (excluding soft-deleted) with pagination"""
         statement = (
             select(Pedido)
             .where(Pedido.deleted_at.is_(None))
             .options(selectinload(Pedido.detalles))
-            .offset(offset).limit(limit)
+            .offset(skip).limit(limit)
         )
         items = self.session.exec(statement).unique().all()
 
@@ -58,10 +58,9 @@ class PedidoRepository(BaseRepository[Pedido]):
         pedido_data["updated_at"] = datetime.now(timezone.utc)
         return super().update(db_pedido, pedido_data)
 
-    def delete(self, db_pedido: Pedido) -> None:
+    def soft_delete(self, db_pedido: Pedido) -> None:
         """Soft delete a pedido"""
-        db_pedido.deleted_at = datetime.now(timezone.utc)
-        self.session.add(db_pedido)
+        super().soft_delete(db_pedido)
 
     def update_estado(self, db_pedido: Pedido, nuevo_estado: str) -> Pedido:
         """Update pedido estado"""
@@ -86,7 +85,7 @@ class DetallePedidoRepository(BaseRepository[DetallePedido]):
         """RN-04: DetallePedido es un snapshot inmutable, no se permite modificar."""
         raise NotImplementedError("DetallePedido es inmutable (RN-04): no se permite UPDATE")
 
-    def delete(self, *args, **kwargs):
+    def hard_delete(self, *args, **kwargs):
         """RN-04: DetallePedido es un snapshot inmutable, no se permite eliminar."""
         raise NotImplementedError("DetallePedido es inmutable (RN-04): no se permite DELETE")
 
@@ -110,6 +109,6 @@ class HistorialEstadoPedidoRepository(BaseRepository[HistorialEstadoPedido]):
         """RN-03: El historial es append-only, no se permite modificar registros."""
         raise NotImplementedError("HistorialEstadoPedido es append-only (RN-03): no se permite UPDATE")
 
-    def delete(self, *args, **kwargs):
+    def hard_delete(self, *args, **kwargs):
         """RN-03: El historial es append-only, no se permite eliminar registros."""
         raise NotImplementedError("HistorialEstadoPedido es append-only (RN-03): no se permite DELETE")

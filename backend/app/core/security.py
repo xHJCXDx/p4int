@@ -1,13 +1,17 @@
-"""Seguridad: JWT, hash de contraseñas, y dependencies de autenticación."""
+"""Seguridad: JWT, hash de contraseñas, y dependencies de autenticación.
+
+REGLA DE CAPAS: este módulo pertenece a core/ y NO DEBE importar de app.modules/.
+La resolución del usuario se delega a un callable registrado desde el módulo usuarios.
+"""
 
 import os
 from datetime import datetime, timedelta, timezone
-from typing import Optional, List
+from typing import Optional, List, Callable, Any
 import jwt
 import bcrypt
-from fastapi import Depends, HTTPException, status, Request
+from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from sqlmodel import Session
+from sqlmodel import Session  # noqa: F401 — used by user_fetcher signature
 
 from app.core.database import get_session
 
@@ -18,6 +22,21 @@ ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30")
 REFRESH_TOKEN_EXPIRE_DAYS = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", "7"))
 
 bearer_scheme = HTTPBearer(auto_error=False)
+
+# ---------------------------------------------------------------------------
+# User fetcher registry — módulos registran su implementación via set_user_fetcher
+# ---------------------------------------------------------------------------
+_user_fetcher: Optional[Callable[[Session, int], Any]] = None
+
+
+def set_user_fetcher(fetcher: Callable[[Session, int], Any]) -> None:
+    """Registra el callable que resuelve un usuario por ID.
+
+    Debe ser invocado UNA VEZ durante el arranque (e.g. en el __init__.py del módulo usuarios).
+    El callable recibe (session, user_id) y retorna el usuario o None si no existe / soft-deleted.
+    """
+    global _user_fetcher
+    _user_fetcher = fetcher
 
 def hash_password(plain_password: str) -> str:
     """Hashea una contraseña con bcrypt (cost factor = 12)."""
@@ -90,8 +109,15 @@ def get_current_user(
     credentials: Optional[HTTPAuthorizationCredentials] = Depends(bearer_scheme),
     session: Session = Depends(get_session),
 ):
-    """Extrae el usuario actual del header Authorization: Bearer <token>."""
-    from app.modules.usuarios.unit_of_work import UsuarioUnitOfWork
+    """Extrae el usuario actual del header Authorization: Bearer <token>.
+
+    La resolución del usuario se delega al callable registrado via set_user_fetcher.
+    """
+    if _user_fetcher is None:
+        raise RuntimeError(
+            "User fetcher no registrado. "
+            "Llamá a set_user_fetcher() durante el arranque de la app."
+        )
 
     if not credentials:
         raise HTTPException(
@@ -115,10 +141,7 @@ def get_current_user(
             detail="Token inválido",
         )
 
-    user_id = int(sub)
-
-    with UsuarioUnitOfWork(session) as uow:
-        user = uow.usuarios.get_by_id(user_id)
+    user = _user_fetcher(session, int(sub))
 
     if not user:
         raise HTTPException(

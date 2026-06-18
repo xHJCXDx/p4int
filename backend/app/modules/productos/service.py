@@ -6,6 +6,7 @@ from app.modules.productos.model import Producto
 from app.modules.productos.schema import ProductoCreate, ProductoUpdate, ProductoRead, IngredienteInProducto, IngredienteEnReceta
 from app.modules.productos.unit_of_work import ProductoUnitOfWork
 from app.core.constants import convertir_unidad
+from app.core.response import BusinessRuleError
 
 
 def calcular_stock_producto(uow, producto: Producto) -> int:
@@ -98,16 +99,13 @@ def get_all(
     disponible: Optional[bool] = None,
 ) -> Tuple[List[ProductoRead], int]:
     with ProductoUnitOfWork(session) as uow:
-        productos, total = uow.productos.get_all(
-            limit, offset,
+        productos, total = uow.productos.list_all(
+            offset, limit,
             busqueda=busqueda,
             categoria_id=categoria_id,
             disponible=disponible,
         )
         items = [_build_producto_read(uow, p) for p in productos]
-        if disponible:
-            items = [p for p in items if p.stock_cantidad > 0]
-            total = len(items)
         return items, total
 
 
@@ -156,13 +154,12 @@ def update(session: Session, db_producto: Producto, producto_data: ProductoUpdat
 
 def delete(session: Session, db_producto: Producto):
     with ProductoUnitOfWork(session) as uow:
-        uow.productos.delete(db_producto)
+        uow.productos.soft_delete(db_producto)
 
 
 def update_disponibilidad(session: Session, db_producto: Producto, disponible: bool) -> Producto:
     with ProductoUnitOfWork(session) as uow:
         if disponible and calcular_stock_producto(uow, db_producto) <= 0:
-            from app.core.response import BusinessRuleError
             raise BusinessRuleError("No se puede habilitar un producto sin stock de ingredientes")
         updated = uow.productos.update(db_producto, {
             "disponible": disponible,
@@ -209,7 +206,7 @@ def add_ingrediente(session: Session, db_producto: Producto, ing_data: Ingredien
     with ProductoUnitOfWork(session) as uow:
         ingrediente = uow.ingredientes.get_by_id(ing_data.ingrediente_id)
         if not ingrediente:
-            raise ValueError(f"Ingrediente {ing_data.ingrediente_id} no encontrado")
+            raise BusinessRuleError(f"Ingrediente {ing_data.ingrediente_id} no encontrado")
 
         uow.productos.create_ingrediente_link(
             db_producto.id,
@@ -221,8 +218,7 @@ def add_ingrediente(session: Session, db_producto: Producto, ing_data: Ingredien
 
         uow.productos.update(db_producto, {"updated_at": datetime.now(timezone.utc)})
 
-    with ProductoUnitOfWork(session) as uow2:
-        um = uow2.unidades_medida.get_by_id(ing_data.unidad_medida_id)
+        um = uow.unidades_medida.get_by_id(ing_data.unidad_medida_id)
 
     return IngredienteInProducto(
         id=ingrediente.id,

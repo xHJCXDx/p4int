@@ -6,7 +6,7 @@ from pydantic import BaseModel
 
 
 class DireccionCreate(BaseModel):
-    alias: str
+    alias: Optional[str] = None
     calle: str
     numero: str
     localidad: str
@@ -25,7 +25,7 @@ class DireccionRead(BaseModel):
 
     id: int
     usuario_id: int
-    alias: str
+    alias: Optional[str] = None
     calle: str
     numero: str
     localidad: str
@@ -39,7 +39,6 @@ class DireccionRead(BaseModel):
     es_principal: bool
     created_at: datetime
     updated_at: datetime
-    deleted_at: Optional[datetime] = None
 
 
 class DireccionUpdate(BaseModel):

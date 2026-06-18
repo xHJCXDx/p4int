@@ -22,9 +22,10 @@ class UnidadMedidaRepository(BaseRepository[UnidadMedida]):
 
     def is_in_use(self, id: int) -> bool:
         """Verifica si la unidad de medida está siendo usada por algún ingrediente."""
-        from app.modules.ingredientes.model import Ingrediente
-        result = self.session.exec(
-            select(Ingrediente).where(Ingrediente.unidad_medida_id == id)
+        from sqlalchemy import text
+        result = self.session.execute(
+            text("SELECT 1 FROM ingrediente WHERE unidad_medida_id = :id LIMIT 1"),
+            {"id": id}
         ).first()
         return result is not None
 

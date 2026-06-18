@@ -36,7 +36,8 @@ class TimingAndLoggingMiddleware(BaseHTTPMiddleware):
         return response
 from app.core.database import create_db_and_tables, engine
 from app.core.rate_limit import limiter
-from app.core.security import verify_token
+from app.core.security import verify_token, set_user_fetcher
+from app.modules.usuarios import fetch_user_by_id
 from app.core.ws_manager import ws_manager
 from app.modules.categorias.router import router as categoria_router
 from app.modules.productos.router import router as producto_router
@@ -60,6 +61,7 @@ from app.modules.productos.seed import seed_productos
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    set_user_fetcher(fetch_user_by_id)
     create_db_and_tables()
     with Session(engine) as session:
         seed_roles(session)

@@ -6,14 +6,20 @@ from app.modules.categorias.schema import CategoriaCreate, CategoriaRead, Catego
 from app.modules.categorias.unit_of_work import CategoriaUnitOfWork
 
 
-def build_categoria_read(session: Session, categoria: Categoria) -> CategoriaRead:
-    """Construye un CategoriaRead con el nombre del padre si tiene."""
+def build_categoria_read(session_or_uow, categoria: Categoria) -> CategoriaRead:
+    """Construye un CategoriaRead con el nombre del padre si tiene.
+
+    Acepta Session (abre UoW internamente) o CategoriaUnitOfWork.
+    """
     data = CategoriaRead.model_validate(categoria)
     if categoria.parent_id:
-        with CategoriaUnitOfWork(session) as uow:
-            parent = uow.categorias.get_by_id(categoria.parent_id)
-            if parent:
-                data.parent_nombre = parent.nombre
+        if isinstance(session_or_uow, CategoriaUnitOfWork):
+            parent = session_or_uow.categorias.get_by_id(categoria.parent_id)
+        else:
+            with CategoriaUnitOfWork(session_or_uow) as uow:
+                parent = uow.categorias.get_by_id(categoria.parent_id)
+        if parent:
+            data.parent_nombre = parent.nombre
     return data
 
 
@@ -36,15 +42,20 @@ def get_tree(session: Session) -> List[dict]:
 
 def get_all_as_read(session: Session, limit: int = 100, offset: int = 0, parent_id: Optional[int] = None) -> Tuple[List[CategoriaRead], int]:
     """Obtiene categorías paginadas ya serializadas como CategoriaRead."""
-    categorias, total = get_all(session, limit, offset, parent_id)
-    return [build_categoria_read(session, c) for c in categorias], total
+    with CategoriaUnitOfWork(session) as uow:
+        if parent_id is not None:
+            categorias, total = uow.categorias.get_all_by_parent(parent_id, offset, limit)
+        else:
+            categorias, total = uow.categorias.list_all(offset, limit)
+        result = [build_categoria_read(uow, c) for c in categorias]
+    return result, total
 
 
 def get_all(session: Session, limit: int = 100, offset: int = 0, parent_id: Optional[int] = None) -> Tuple[List[Categoria], int]:
     with CategoriaUnitOfWork(session) as uow:
         if parent_id is not None:
-            return uow.categorias.get_all_by_parent(parent_id, limit, offset)
-        return uow.categorias.get_all(limit, offset)
+            return uow.categorias.get_all_by_parent(parent_id, offset, limit)
+        return uow.categorias.list_all(offset, limit)
 
 
 def get_by_id(session: Session, categoria_id: int) -> Optional[Categoria]:
@@ -95,5 +106,5 @@ def delete(session: Session, db_categoria: Categoria) -> Optional[str]:
     with CategoriaUnitOfWork(session) as uow:
         if uow.categorias.has_productos_activos(db_categoria.id):
             return "No se puede eliminar la categoría porque tiene productos asociados"
-        uow.categorias.delete(db_categoria)
+        uow.categorias.soft_delete(db_categoria)
     return None

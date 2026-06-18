@@ -6,12 +6,9 @@ from app.modules.pedidos.model import Pedido, DetallePedido, HistorialEstadoPedi
 from app.modules.pedidos.schema import PedidoCreate, PedidoCreateFromCheckout, PedidoUpdate, DetallePedidoCreate
 from app.modules.pedidos.unit_of_work import PedidoUnitOfWork
 from app.core.constants import TRANSICIONES_PERMITIDAS, ACCIONES_A_ESTADOS, convertir_unidad
-from app.modules.productos.model import Producto, ProductoIngredienteLink
-from app.modules.ingredientes.model import Ingrediente
 from app.modules.usuarios.model import Usuario
 from app.core.response import BusinessRuleError
 from app.modules.pedidos.schema import PedidoDetail, DetallePedidoRead, HistorialEstadoPedidoRead
-from app.modules.pagos.schema import PagoRead
 
 
 def is_client_only(user: Usuario) -> bool:
@@ -26,26 +23,6 @@ def is_admin_or_pedidos(user: Usuario) -> bool:
     return "ADMIN" in codes or "PEDIDOS" in codes
 
 
-def resolver_estado_destino(accion: Optional[str], nuevo_estado: Optional[str]) -> Tuple[Optional[str], Optional[str]]:
-    """
-    Resuelve el estado destino a partir de accion o nuevo_estado.
-    Retorna (estado_destino, error_message). Si hay error, estado_destino es None.
-    """
-    estado_destino = nuevo_estado
-    if accion:
-        if accion == "cancelar":
-            estado_destino = "CANCELADO"
-        else:
-            estado_destino = ACCIONES_A_ESTADOS.get(accion.lower())
-            if not estado_destino:
-                return None, f"Acción no reconocida: {accion}. Válidas: {list(ACCIONES_A_ESTADOS.keys())} o 'cancelar'"
-
-    if not estado_destino:
-        return None, "Debe proporcionar 'accion' o 'nuevo_estado'"
-
-    return estado_destino, None
-
-
 # ============ PEDIDO SERVICE ============
 def get_all_pedidos(session: Session, limit: int = 10, offset: int = 0, current_user: Optional[Usuario] = None) -> Tuple[List[Pedido], int]:
     """
@@ -55,7 +32,7 @@ def get_all_pedidos(session: Session, limit: int = 10, offset: int = 0, current_
     with PedidoUnitOfWork(session) as uow:
         if current_user and is_client_only(current_user):
             return uow.pedidos.get_all_for_user(current_user.id, limit, offset)
-        return uow.pedidos.get_all(limit, offset)
+        return uow.pedidos.list_all(offset, limit)
 
 
 def get_pedido_by_id(session: Session, pedido_id: int) -> Optional[Pedido]:
@@ -77,6 +54,7 @@ def get_pedido_with_permission(session: Session, pedido_id: int, current_user: U
 def get_pedido_detail(session: Session, pedido_id: int, current_user: Usuario) -> PedidoDetail:
     """Obtiene pedido completo con detalles, historial y pago. Verifica permisos."""
     from app.modules.pagos import service as pagos_service
+    from app.modules.pagos.schema import PagoRead
 
     pedido = get_pedido_with_permission(session, pedido_id, current_user)
     detalles = get_detalles_by_pedido(session, pedido_id)
@@ -90,12 +68,6 @@ def get_pedido_detail(session: Session, pedido_id: int, current_user: Usuario) -
         historial=[HistorialEstadoPedidoRead.model_validate(h) for h in historial],
         pago=pago,
     )
-
-
-def verify_admin_or_pedidos(current_user: Usuario) -> None:
-    """Verifica que el usuario tenga rol ADMIN o PEDIDOS."""
-    if not is_admin_or_pedidos(current_user):
-        raise PermissionError("No tienes permiso para esta operación")
 
 
 def validate_transition_permission(current_user: Usuario, pedido: Pedido, estado_destino: str) -> None:
@@ -268,7 +240,7 @@ def update_pedido(session: Session, db_pedido: Pedido, pedido_data: PedidoUpdate
 def delete_pedido(session: Session, db_pedido: Pedido):
     """Soft delete: marca con deleted_at."""
     with PedidoUnitOfWork(session) as uow:
-        uow.pedidos.delete(db_pedido)
+        uow.pedidos.soft_delete(db_pedido)
 
 
 def transition_estado(

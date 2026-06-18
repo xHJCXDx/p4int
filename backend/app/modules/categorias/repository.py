@@ -11,9 +11,9 @@ class CategoriaRepository(BaseRepository[Categoria]):
     def __init__(self, session: Session):
         super().__init__(session, Categoria)
 
-    def get_all(self, limit: int = 100, offset: int = 0) -> Tuple[List[Categoria], int]:
+    def list_all(self, skip: int = 0, limit: int = 100) -> Tuple[List[Categoria], int]:
         """Get all categorias (excluding soft-deleted) with pagination"""
-        statement = select(Categoria).where(Categoria.deleted_at.is_(None)).offset(offset).limit(limit)
+        statement = select(Categoria).where(Categoria.deleted_at.is_(None)).offset(skip).limit(limit)
         items = self.session.exec(statement).all()
 
         count_statement = select(func.count(Categoria.id)).where(Categoria.deleted_at.is_(None))
@@ -21,12 +21,12 @@ class CategoriaRepository(BaseRepository[Categoria]):
 
         return items, total
 
-    def get_all_by_parent(self, parent_id: int, limit: int = 100, offset: int = 0) -> Tuple[List[Categoria], int]:
+    def get_all_by_parent(self, parent_id: int, skip: int = 0, limit: int = 100) -> Tuple[List[Categoria], int]:
         """Get categorias by parent_id (excluding soft-deleted) with pagination"""
         statement = (
             select(Categoria)
             .where(Categoria.parent_id == parent_id, Categoria.deleted_at.is_(None))
-            .offset(offset).limit(limit)
+            .offset(skip).limit(limit)
         )
         items = self.session.exec(statement).all()
 
@@ -39,7 +39,7 @@ class CategoriaRepository(BaseRepository[Categoria]):
 
     def get_by_nombre(self, nombre: str) -> Optional[Categoria]:
         """Obtiene una categoría por nombre."""
-        statement = select(Categoria).where(Categoria.nombre == nombre)
+        statement = select(Categoria).where(Categoria.nombre == nombre).where(Categoria.deleted_at.is_(None))
         return self.session.exec(statement).first()
 
     def get_by_id(self, categoria_id: int) -> Optional[Categoria]:
@@ -51,9 +51,10 @@ class CategoriaRepository(BaseRepository[Categoria]):
 
     def has_productos_activos(self, categoria_id: int) -> bool:
         """Verifica si la categoría tiene productos asociados"""
-        from app.modules.productos.model import ProductoCategoriaLink
-        result = self.session.exec(
-            select(ProductoCategoriaLink).where(ProductoCategoriaLink.categoria_id == categoria_id)
+        from sqlalchemy import text
+        result = self.session.execute(
+            text("SELECT 1 FROM productocategorialink WHERE categoria_id = :id LIMIT 1"),
+            {"id": categoria_id}
         ).first()
         return result is not None
 
@@ -106,7 +107,6 @@ class CategoriaRepository(BaseRepository[Categoria]):
         children = list(self.session.exec(children_stmt).all())
         return categoria, children
 
-    def delete(self, db_categoria: Categoria) -> None:
+    def soft_delete(self, db_categoria: Categoria) -> None:
         """Soft delete a categoria"""
-        db_categoria.deleted_at = datetime.now(timezone.utc)
-        self.session.add(db_categoria)
+        super().soft_delete(db_categoria)

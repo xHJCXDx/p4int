@@ -136,15 +136,13 @@ def test_delete_ingrediente_sin_auth(client, session):
 
 
 def test_delete_ingrediente_con_admin(admin_client, session):
-    """DELETE con admin debe eliminar ingrediente (retorna 200, no 204 explícito)."""
+    """DELETE con admin debe eliminar ingrediente (retorna 204 sin body)."""
     ing_data = IngredienteCreate(nombre="Para eliminar", es_alergeno=False)
     ing = service.create(session, ing_data)
     session.refresh(ing)
 
     response = admin_client.delete(f"/api/v1/ingredientes/{ing.id}")
-    assert response.status_code == 200
-    data = response.json()
-    assert data["success"] is True
+    assert response.status_code == 204
 
 
 def test_delete_ingrediente_no_existente(admin_client):

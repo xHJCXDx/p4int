@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, status, Query
+from fastapi import APIRouter, Depends, Response, status, Query
 from sqlmodel import Session
 from app.core.database import get_session
 from app.core.response import success_response, paginated_response, error_response, paginate_offset, ApiResponse
@@ -76,14 +76,11 @@ def update_stock(
     )
 
 
-@router.delete("/{ingrediente_id}", dependencies=[Depends(require_roles(RolCode.ADMIN, RolCode.STOCK))])
-def delete_ingrediente(ingrediente_id: int, session: Session = Depends(get_session)) -> ApiResponse:
+@router.delete("/{ingrediente_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(require_roles(RolCode.ADMIN, RolCode.STOCK))])
+def delete_ingrediente(ingrediente_id: int, session: Session = Depends(get_session)):
     """Eliminar ingrediente (solo ADMIN)."""
     db_ingrediente = service.get_by_id(session, ingrediente_id)
     if not db_ingrediente:
         return error_response(detail="Ingrediente no encontrado", status_code=404, code="NOT_FOUND")
     service.delete(session, db_ingrediente)
-    return success_response(
-        message="Ingrediente eliminado exitosamente",
-        status_code=204
-    )
+    return Response(status_code=204)

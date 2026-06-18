@@ -8,7 +8,7 @@ from app.modules.ingredientes.unit_of_work import IngredienteUnitOfWork
 
 def get_all(session: Session, limit: int = 100, offset: int = 0) -> Tuple[List[Ingrediente], int]:
     with IngredienteUnitOfWork(session) as uow:
-        return uow.ingredientes.get_all(limit, offset)
+        return uow.ingredientes.list_all(offset, limit)
 
 
 def get_by_id(session: Session, ingrediente_id: int) -> Optional[Ingrediente]:
@@ -35,4 +35,4 @@ def update(session: Session, db_ingrediente: Ingrediente, ingrediente_data: Ingr
 
 def delete(session: Session, db_ingrediente: Ingrediente):
     with IngredienteUnitOfWork(session) as uow:
-        uow.ingredientes.delete(db_ingrediente)
+        uow.ingredientes.soft_delete(db_ingrediente)

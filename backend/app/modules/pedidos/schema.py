@@ -84,9 +84,6 @@ class CancelPedidoRequest(SQLModel):
 
 
 # ============ HISTORIAL ESTADO PEDIDO ============
-class HistorialEstadoPedidoCreate(HistorialEstadoPedidoBase):
-    pass
-
 class HistorialEstadoPedidoRead(SQLModel):
     id: int
     pedido_id: int

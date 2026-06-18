@@ -4,13 +4,6 @@ from typing import Optional, List
 from pydantic import BaseModel, EmailStr, Field
 
 
-class RolRead(BaseModel):
-    """Schema para leer un Rol."""
-    codigo: str
-    nombre: str
-    descripcion: Optional[str] = None
-
-
 class UsuarioCreate(BaseModel):
     """Schema para crear un nuevo usuario."""
     nombre: str = Field(min_length=2, max_length=80)

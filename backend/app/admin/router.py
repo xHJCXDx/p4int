@@ -5,7 +5,7 @@ from app.core.database import get_session
 from app.core.response import success_response, paginated_response, error_response, paginate_offset, ApiResponse, BusinessRuleError
 from app.core.security import require_roles
 from app.core.constants import RolCode
-from app.modules.usuarios.schema import UsuarioUpdate, RolRead
+from app.modules.usuarios.schema import UsuarioUpdate
 from app.modules.usuarios import service as usuario_service
 from app.modules.usuarios.service import usuario_to_read
 from app.admin import service as admin_service
@@ -25,7 +25,7 @@ def listar_roles(session: Session = Depends(get_session)) -> ApiResponse:
     """Listado de roles del sistema."""
     roles = usuario_service.get_all_roles(session)
     return success_response(
-        data=[RolRead.model_validate(r, from_attributes=True) for r in roles],
+        data=[{"codigo": r.codigo} for r in roles],
         message="Roles listados",
     )
 

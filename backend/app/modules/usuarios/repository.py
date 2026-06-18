@@ -69,10 +69,9 @@ class UsuarioRepository(BaseRepository[Usuario]):
         self.session.add(usuario_rol)
         return None
 
-    def delete(self, usuario: Usuario) -> None:
+    def soft_delete(self, usuario: Usuario) -> None:
         """Soft delete de un usuario."""
-        usuario.deleted_at = datetime.now(timezone.utc)
-        self.session.add(usuario)
+        super().soft_delete(usuario)
 
     def create_refresh_token(self, refresh_token: RefreshToken) -> RefreshToken:
         """Persiste un refresh token en la DB."""
