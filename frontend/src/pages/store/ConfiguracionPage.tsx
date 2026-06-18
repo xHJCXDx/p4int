@@ -179,7 +179,7 @@ function DireccionesSection() {
   const startEdit = (d: DireccionEntrega) => {
     setEditing(d);
     setForm({
-      alias: d.alias,
+      alias: d.alias ?? '',
       calle: d.calle,
       numero: d.numero,
       localidad: d.localidad,
@@ -380,7 +380,7 @@ function DireccionesSection() {
             >
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="font-semibold text-gray-900">{d.alias}</span>
+                  <span className="font-semibold text-gray-900">{d.alias ?? 'Sin alias'}</span>
                   {d.es_principal && (
                     <span className="text-xs bg-gray-800 text-white px-2 py-0.5 rounded">
                       Principal

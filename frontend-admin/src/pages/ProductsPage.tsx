@@ -72,11 +72,11 @@ function ProductsPage() {
     setIsModalOpen(true);
   };
 
-  const handleSubmit = (data: ProductoFormType) => {
+  const handleSubmit = async (data: ProductoFormType) => {
     if (selectedProducto) {
-      handleUpdate(data);
+      await handleUpdate(data);
     } else {
-      handleCreate(data);
+      await handleCreate(data);
     }
   };
 

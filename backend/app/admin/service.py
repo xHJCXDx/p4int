@@ -14,5 +14,5 @@ def get_dashboard_stats(session: Session) -> Dict[str, Any]:
             "total_usuarios": uow.repo.count_usuarios_activos(),
             "total_pedidos": uow.repo.count_pedidos_activos(),
             "pedidos_por_estado": {estado: count for estado, count in pedidos_por_estado},
-            "ingresos_totales": uow.repo.get_ingresos_totales(),
+            "ingresos_totales": float(uow.repo.get_ingresos_totales()),
         }

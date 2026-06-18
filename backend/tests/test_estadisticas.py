@@ -108,6 +108,10 @@ def test_resumen_ok(admin_client, estadisticas_seed):
     assert "ticket_promedio" in resumen
     assert "pedidos_activos" in resumen
     assert "ventas_mes_actual" in resumen
+    # Decimal fields MUST serialize as JSON numbers, not strings
+    for field in ("ventas_hoy", "ticket_promedio", "ventas_mes_actual"):
+        assert isinstance(resumen[field], (int, float)), \
+            f"{field} debe ser número JSON, got {type(resumen[field])}"
     # Pedidos activos: PENDIENTE + CONFIRMADO + EN_PREP (no terminales)
     assert resumen["pedidos_activos"] >= 2
 

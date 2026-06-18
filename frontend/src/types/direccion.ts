@@ -1,7 +1,7 @@
 export interface DireccionEntrega {
   id: number;
   usuario_id: number;
-  alias: string;
+  alias: string | null;
   calle: string;
   numero: string;
   localidad: string;

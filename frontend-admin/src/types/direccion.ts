@@ -1,7 +1,7 @@
 export interface DireccionEntrega {
   id: number;
   usuario_id: number;
-  alias: string;
+  alias: string | null;
   calle: string;
   numero: string;
   piso: string | null;
@@ -15,5 +15,4 @@ export interface DireccionEntrega {
   es_principal: boolean;
   created_at: string;
   updated_at: string;
-  deleted_at: string | null;
 }

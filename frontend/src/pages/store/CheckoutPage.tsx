@@ -141,7 +141,7 @@ export default function CheckoutPage() {
                     />
                     <div className="flex-1">
                       <p className="font-medium text-gray-900">
-                        {dir.alias}
+                        {dir.alias ?? 'Sin alias'}
                         {dir.es_principal && <span className="ml-2 text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">Principal</span>}
                       </p>
                       <p className="text-sm text-gray-600">{dir.calle} {dir.numero}{dir.piso ? `, Piso ${dir.piso}` : ''}{dir.departamento ? ` Dto ${dir.departamento}` : ''}</p>
