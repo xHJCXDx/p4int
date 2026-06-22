@@ -1,15 +1,37 @@
-import React from 'react'
-import ReactDOM from 'react-dom/client'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import App from './App.tsx'
-import './index.css'
+import { StrictMode } from 'react';
+import { createRoot } from 'react-dom/client';
+import { BrowserRouter } from 'react-router-dom';
+import { QueryClientProvider } from '@tanstack/react-query';
+import App from './App.tsx';
+import './index.css';
 
-const queryClient = new QueryClient()
+import { ProductosProvider } from './context/ProductoContext.tsx';
+import { CategoriasProvider } from './context/CategoriaContext.tsx';
+import { IngredientesProvider } from './context/IngredienteContext.tsx';
+import { AuthProvider } from './context/AuthContext.tsx';
+import { CarritoProvider } from './context/CarritoContext.tsx';
+import { ToastProvider } from './context/ToastContext.tsx';
+import { queryClient } from './api/queryClient.ts';
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <App />
-    </QueryClientProvider>
-  </React.StrictMode>,
-)
+
+createRoot(document.getElementById('root')!).render(
+  <StrictMode>
+    <BrowserRouter>
+      <QueryClientProvider client={queryClient}>
+        <ToastProvider>
+          <AuthProvider>
+            <CarritoProvider>
+              <ProductosProvider>
+                <CategoriasProvider>
+                  <IngredientesProvider>
+                    <App />
+                  </IngredientesProvider>
+                </CategoriasProvider>
+              </ProductosProvider>
+            </CarritoProvider>
+          </AuthProvider>
+        </ToastProvider>
+      </QueryClientProvider>
+    </BrowserRouter>
+  </StrictMode>,
+);

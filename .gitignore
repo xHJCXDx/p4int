@@ -1,30 +1,41 @@
-# Python
-__pycache__/
-*.py[cod]
-*.pyo
+# Entornos Virtuales y Dependencias Python
 .venv/
 venv/
-*.egg-info/
-.eggs/
+env/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
 
-# Node
+# Node / Frontend
 node_modules/
 dist/
+dist-ssr/
+*.local
 
-# IDEs
-.idea/
-.vscode/
-*.swp
-*.swo
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Env
+# Variables de entorno y configuraciones locales
 .env
 .env.local
-.env.*.local
+.env.development.local
+.env.test.local
+.env.production.local
 
-# Tests
-backend/tests/__pycache__/
+# Bases de datos locales
+*.sqlite
+*.db
+
+# IDEs y Editores
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# Logs y temporales
+logs/
+*.log
+npm-debug.log*
+
+# Carpetas de herramientas / IA
+.gemini/
+

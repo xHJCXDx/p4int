@@ -1,108 +1,87 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import Navbar from './components/Navbar';
-import { ProtectedRoute } from './components/ProtectedRoute';
-import { ToastProvider } from './components/Toast';
-import { ConfirmProvider } from './components/ConfirmDialog';
-import { ErrorBoundary } from './components/ErrorBoundary';
-import { useWebSocket } from './hooks/useWebSocket';
+import { Routes, Route } from 'react-router-dom';
 
-// Store pages
-import HomeStorePage from './pages/store/HomeStorePage';
-import ProductoDetailPage from './pages/store/ProductoDetailPage';
-import CarritoPage from './pages/store/CarritoPage';
-import CheckoutPage from './pages/store/CheckoutPage';
-import MisPedidosPage from './pages/store/MisPedidosPage';
-import ConfiguracionPage from './pages/store/ConfiguracionPage';
+import { Layout } from './components/Layout';
+import { HomePage } from './pages/HomePage';
+import { ConfiguracionPage } from './pages/ConfiguracionPage';
+import { ProductosPage } from './pages/ProductosPage';
+import { ProductoDetallePage } from './pages/ProductoDetallePage';
+import { CategoriasPage } from './pages/CategoriasPage';
+import { IngredientesPage } from './pages/IngredientesPage';
+import { ProductoFormPage } from './pages/ProductoFormPage';
+import { CategoriaFormPage } from './pages/CategoriaFormPage';
+import { IngredienteFormPage } from './pages/IngredienteFormPage';
+import { UsuariosPage } from './pages/UsuariosPage';
+import { PedidosPage } from './pages/PedidosPage';
+import { EstadisticasPage } from './pages/EstadisticasPage';
+import { PedidoDetallePage } from './pages/PedidoDetallePage';
+import { CarritoPage } from './pages/CarritoPage';
+import { MisPedidosPage } from './pages/MisPedidosPage';
+import { PagoExitoPage } from './pages/PagoExitoPage';
+import { PagoFalloPage } from './pages/PagoFalloPage';
+import { PagoPendientePage } from './pages/PagoPendientePage';
+import { LoginPage } from './pages/LoginPage';
+import { RequireAuth } from './routes/RequireAuth';
+import { RequireRole } from './routes/RequireRole';
+import { ROLES } from './hooks/useRoles';
 
-// Auth
-import LoginPage from './pages/store/LoginPage';
+import { useProductos } from './hooks/useProducto';
+import { useCategorias } from './hooks/useCategoria';
+import { useIngredientes } from './hooks/useIngrediente';
 
-// Error pages
-const NotFoundPage = () => (
-  <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-    <div className="text-center">
-      <h1 className="text-4xl font-bold text-gray-900 mb-4">404</h1>
-      <p className="text-gray-600 mb-4">Pagina no encontrada</p>
-    </div>
-  </div>
-);
+export default function App() {
+  const { error: errorProd } = useProductos();
+  const { error: errorCat } = useCategorias();
+  const { error: errorIng } = useIngredientes();
 
-const ForbiddenPage = () => (
-  <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-    <div className="text-center">
-      <h1 className="text-4xl font-bold text-gray-900 mb-4">403</h1>
-      <p className="text-gray-600 mb-4">No tienes permiso para acceder a este recurso</p>
-    </div>
-  </div>
-);
-
-function AppRoutes() {
   return (
-    <Routes>
-      {/* Auth */}
-      <Route path="/login" element={<LoginPage />} />
+    <>
+      {(errorProd || errorCat || errorIng) && (
+        <div className="bg-red-500 text-white p-3 text-center text-sm font-medium z-50 relative shadow-md">
+          <p>Error de conexion con el servidor: {errorProd || errorCat || errorIng}</p>
+        </div>
+      )}
 
-      {/* Store routes */}
-      <Route path="/store/home" element={<HomeStorePage />} />
-      <Route path="/store/producto/:id" element={<ProductoDetailPage />} />
-      <Route path="/store/carrito" element={<CarritoPage />} />
-      <Route
-        path="/store/checkout"
-        element={
-          <ProtectedRoute roles={['CLIENT']}>
-            <CheckoutPage />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/store/mis-pedidos"
-        element={
-          <ProtectedRoute roles={['CLIENT']}>
-            <MisPedidosPage />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/store/configuracion"
-        element={
-          <ProtectedRoute roles={['CLIENT']}>
-            <ConfiguracionPage />
-          </ProtectedRoute>
-        }
-      />
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/pago/exito" element={<PagoExitoPage />} />
+        <Route path="/pago/fallo" element={<PagoFalloPage />} />
+        <Route path="/pago/pendiente" element={<PagoPendientePage />} />
+        <Route element={<RequireAuth />}>
+          <Route path="/" element={<Layout />}>
+            <Route index element={<HomePage />} />
+            <Route path="configuracion" element={<ConfiguracionPage />} />
+            <Route path="productos" element={<ProductosPage />} />
+            <Route path="productos/nuevo" element={<ProductoFormPage />} />
+            <Route path="productos/:id/editar" element={<ProductoFormPage />} />
+            <Route path="productos/:id" element={<ProductoDetallePage />} />
+            <Route element={<RequireRole allowed={[ROLES.CLIENT]} />}>
+              <Route path="hacer-pedido" element={<ProductosPage />} />
+              <Route path="carrito" element={<CarritoPage />} />
+              <Route path="mis-pedidos" element={<MisPedidosPage />} />
+              <Route path="mis-pedidos/:id" element={<PedidoDetallePage />} />
+            </Route>
+            <Route path="categorias" element={<CategoriasPage />} />
+            <Route path="categorias/nueva" element={<CategoriaFormPage />} />
+            <Route path="categorias/:id/editar" element={<CategoriaFormPage />} />
+            <Route path="ingredientes" element={<IngredientesPage />} />
+            <Route path="ingredientes/nuevo" element={<IngredienteFormPage />} />
+            <Route path="ingredientes/:id/editar" element={<IngredienteFormPage />} />
 
-      {/* Error pages */}
-      <Route path="/403" element={<ForbiddenPage />} />
-      <Route path="/404" element={<NotFoundPage />} />
+            <Route element={<RequireRole allowed={[ROLES.ADMIN]} />}>
+              <Route path="usuarios" element={<UsuariosPage />} />
+            </Route>
 
-      {/* Default redirect */}
-      <Route path="/" element={<Navigate to="/store/home" replace />} />
-      <Route path="*" element={<Navigate to="/404" replace />} />
-    </Routes>
+            <Route element={<RequireRole allowed={[ROLES.ADMIN, ROLES.PEDIDOS, ROLES.STOCK]} />}>
+              <Route path="pedidos" element={<PedidosPage />} />
+              <Route path="pedidos/:id" element={<PedidoDetallePage />} />
+            </Route>
+
+            <Route element={<RequireRole allowed={[ROLES.ADMIN, ROLES.PEDIDOS]} />}>
+              <Route path="estadisticas" element={<EstadisticasPage />} />
+            </Route>
+          </Route>
+        </Route>
+      </Routes>
+    </>
   );
 }
-
-function WebSocketInit() {
-  useWebSocket();
-  return null;
-}
-
-function App() {
-  return (
-    <Router>
-      <ErrorBoundary>
-        <ToastProvider>
-          <ConfirmProvider>
-            <WebSocketInit />
-            <div className="min-h-screen bg-gray-50">
-              <Navbar />
-              <AppRoutes />
-            </div>
-          </ConfirmProvider>
-        </ToastProvider>
-      </ErrorBoundary>
-    </Router>
-  );
-}
-
-export default App;

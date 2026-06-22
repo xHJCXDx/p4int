@@ -1,83 +1,146 @@
+name: proyecto-integrador
+
 services:
   db:
-    image: postgres:15-alpine
+    image: db
+    build:
+      context: .
+      dockerfile: docker/db.Dockerfile
+    container_name: db
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-      POSTGRES_DB: ${POSTGRES_DB:-p4int_db}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-clave_postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-proyecto_final}
     ports:
-      - "${DB_PORT:-5432}:5432"
+      - "5438:5432"
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - db_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
-      interval: 5s
-      timeout: 3s
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-proyecto_final}"]
+      interval: 10s
+      timeout: 5s
       retries: 5
 
   backend:
+    image: backend
     build:
-      context: ./backend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: backend
     restart: unless-stopped
-    ports:
-      - "${API_PORT:-8000}:8000"
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-p4int_db}
-      SECRET_KEY: ${SECRET_KEY:-super-secret-dev-key}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-clave_postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-proyecto_final}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-clave_postgres}@db:5432/${POSTGRES_DB:-proyecto_final}
+      PYTHONUTF8: ${PYTHONUTF8:-1}
+      SECRET_KEY: ${SECRET_KEY:-food_store_secret_key_dev_with_underscores_2026}
+      JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
+      JWT_ACCESS_TOKEN_EXPIRE_MINUTES: ${JWT_ACCESS_TOKEN_EXPIRE_MINUTES:-30}
+      RUN_SEED_ON_STARTUP: ${RUN_SEED_ON_STARTUP:-false}
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      COOKIE_SAMESITE: ${COOKIE_SAMESITE:-lax}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173,http://127.0.0.1:5173,http://localhost:4173,http://127.0.0.1:4173}
+      DEFAULT_ADMIN_EMAIL: ${DEFAULT_ADMIN_EMAIL:-admin@tienda.com}
+      DEFAULT_ADMIN_PASSWORD: ${DEFAULT_ADMIN_PASSWORD:-admin123}
+      DEFAULT_ADMIN_NAME: ${DEFAULT_ADMIN_NAME:-Administrador}
+      DEFAULT_STOCK_EMAIL: ${DEFAULT_STOCK_EMAIL:-stock@tienda.com}
+      DEFAULT_STOCK_PASSWORD: ${DEFAULT_STOCK_PASSWORD:-stock123}
+      DEFAULT_PEDIDOS_EMAIL: ${DEFAULT_PEDIDOS_EMAIL:-pedidos@tienda.com}
+      DEFAULT_PEDIDOS_PASSWORD: ${DEFAULT_PEDIDOS_PASSWORD:-pedidos123}
+      DEFAULT_CLIENT_EMAIL: ${DEFAULT_CLIENT_EMAIL:-cliente@tienda.com}
+      DEFAULT_CLIENT_PASSWORD: ${DEFAULT_CLIENT_PASSWORD:-cliente123}
       CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME:-}
       CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY:-}
       CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET:-}
-      MERCADOPAGO_ACCESS_TOKEN: ${MERCADOPAGO_ACCESS_TOKEN:-}
-      MERCADOPAGO_WEBHOOK_URL: ${MERCADOPAGO_WEBHOOK_URL:-}
-      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173,http://localhost:5174}
+      MP_ACCESS_TOKEN: ${MP_ACCESS_TOKEN:-}
+      MP_WEBHOOK_SECRET: ${MP_WEBHOOK_SECRET:-}
+      BACKEND_URL: ${BACKEND_URL:-http://localhost:8000}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173}
+      UPLOADS_DIR: /app/img
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend/img:/app/img
+    depends_on:
+      db:
+        condition: service_healthy
+    develop:
+      watch:
+        - path: ./backend
+          action: sync+restart
+          target: /app/backend
+          ignore:
+            - __pycache__/
+            - .pytest_cache/
+            - .mypy_cache/
+        - path: ./requirements.txt
+          action: rebuild
+
+  frontend:
+    image: frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: frontend
+    restart: unless-stopped
+    environment:
+      VITE_API_URL: ${VITE_API_URL:-http://localhost:8000}
+      VITE_WS_URL: ${VITE_WS_URL:-ws://localhost:8000/api/v1/ws/pedidos}
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+    develop:
+      watch:
+        - path: ./frontend/src
+          action: sync
+          target: /app/src
+          ignore:
+            - node_modules/
+            - dist/
+        - path: ./frontend/index.html
+          action: sync
+          target: /app/index.html
+        - path: ./frontend/vite.config.ts
+          action: sync+restart
+          target: /app/vite.config.ts
+        - path: ./frontend/package.json
+          action: rebuild
+        - path: ./frontend/package-lock.json
+          action: rebuild
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-admin@mail.com}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-1234}
+    ports:
+      - "${PGADMIN_PORT:-5050}:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
     depends_on:
       db:
         condition: service_healthy
 
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    restart: unless-stopped
-    ports:
-      - "5173:5173"
-    environment:
-      API_TARGET: http://backend:8000
-      WS_TARGET: ws://backend:8000
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-    depends_on:
-      - backend
-
-  frontend-admin:
-    build:
-      context: ./frontend-admin
-      dockerfile: Dockerfile
-    restart: unless-stopped
-    ports:
-      - "5174:5174"
-    environment:
-      API_TARGET: http://backend:8000
-      WS_TARGET: ws://backend:8000
-    volumes:
-      - ./frontend-admin:/app
-      - /app/node_modules
-    depends_on:
-      - backend
-
   ngrok:
     image: ngrok/ngrok:latest
+    container_name: ngrok
     restart: unless-stopped
+    command: http backend:8000
     environment:
       NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN}
-    command: http backend:8000 --domain=${NGROK_DOMAIN}
     ports:
       - "4040:4040"
     depends_on:
       - backend
 
+
 volumes:
-  pgdata:
+  db_data:
+    name: db_data
+  pgadmin_data:
+    name: pgadmin_data

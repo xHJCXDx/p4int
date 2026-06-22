@@ -1,12 +1,12 @@
-FROM node:20-alpine
+FROM node:22-bookworm-slim
 
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm install
+RUN npm install --include=optional
 
 COPY . .
 
 EXPOSE 5173
 
-CMD ["npx", "vite", "--host", "0.0.0.0"]
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "5173"]
